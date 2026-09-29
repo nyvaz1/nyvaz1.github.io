@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ChemLab Edu — Виртуалды Химиялық Зертхана</title>
+  <title>Химиялық реакциялар зертханасы — §9</title>
   
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -13,12 +13,14 @@
       theme: {
         extend: {
           colors: {
-            chem: {
-              50: '#ecfdf5',
-              100: '#d1fae5',
-              500: '#10b981',
-              600: '#059669',
-              700: '#047857',
+            brand: {
+              50: '#eef7ff',
+              100: '#d9edff',
+              500: '#35a7c8',
+              600: '#1261a0',
+              700: '#0e4e82',
+              800: '#09365c',
+              900: '#17324d'
             }
           }
         }
@@ -26,36 +28,253 @@
     }
   </script>
 
-  <!-- Chart.js for Molecular Visualizations -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <!-- Font Awesome Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <!-- Google Fonts -->
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Fira+Code:wght@400;500;600&display=swap" rel="stylesheet">
+  <!-- Google Fonts Inter & Fira Code -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Fira+Code:wght@400;500;600&display=swap" rel="stylesheet">
   <!-- Supabase JS SDK -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <style>
     body {
-      font-family: 'Inter', sans-serif;
-      transition: background-color 0.25s ease, color 0.25s ease;
+      font-family: 'Inter', Arial, sans-serif;
+      background: linear-gradient(135deg, #eef7ff 0%, #f8fbff 100%);
+      color: #17324d;
+      min-height: 100vh;
+      transition: background 0.3s ease, color 0.3s ease;
     }
-    .custom-slider::-webkit-slider-thumb {
-      -webkit-appearance: none;
-      width: 20px;
-      height: 20px;
-      border-radius: 50%;
-      background: #0284c7;
+    .dark body {
+      background: linear-gradient(135deg, #0b1523 0%, #102133 100%);
+      color: #f0f6fc;
+    }
+    .hero-banner {
+      background: linear-gradient(135deg, #1261a0 0%, #35a7c8 100%);
+      color: white;
+      border-radius: 24px;
+      padding: 26px 30px;
+      box-shadow: 0 12px 35px rgba(20, 96, 128, 0.22);
+    }
+    .lab-card {
+      background: #ffffff;
+      border-radius: 22px;
+      padding: 24px;
+      box-shadow: 0 8px 25px rgba(23, 50, 77, 0.08);
+      border: 1px solid rgba(182, 219, 232, 0.45);
+      transition: all 0.2s ease;
+    }
+    .dark .lab-card {
+      background: #152232;
+      border-color: rgba(56, 189, 248, 0.18);
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+    }
+    .tab-pill {
+      border: 0;
+      border-radius: 14px;
+      padding: 12px 14px;
+      background: #ffffff;
+      color: #1261a0;
+      font-weight: 700;
+      font-size: 13px;
       cursor: pointer;
-      box-shadow: 0 0 10px rgba(2, 132, 199, 0.6);
-      border: 2px solid #ffffff;
+      box-shadow: 0 5px 18px rgba(25, 50, 77, 0.08);
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    .dark .tab-pill {
+      background: #1a2a3d;
+      color: #7dd3fc;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+    }
+    .tab-pill.active {
+      background: #1261a0;
+      color: #ffffff !important;
+      box-shadow: 0 6px 20px rgba(18, 97, 160, 0.35);
+    }
+    /* Animated Beaker from himiya_virtual_lab */
+    .lab-box {
+      min-height: 290px;
+      border-radius: 18px;
+      background: #f1f8fc;
+      border: 2px dashed #9bcfe0;
+      padding: 20px;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    .dark .lab-box {
+      background: #0f1c2b;
+      border-color: #27496d;
+    }
+    .beaker {
+      height: 145px;
+      width: 175px;
+      border: 5px solid #5e8799;
+      border-top: 0;
+      border-radius: 0 0 35px 35px;
+      margin: 20px auto 10px;
+      position: relative;
+      background: linear-gradient(to top, rgba(44, 164, 201, 0.3) 58%, transparent 58%);
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      transition: all 0.4s ease;
+    }
+    .dark .beaker {
+      border-color: #7dd3fc;
+      background: linear-gradient(to top, rgba(14, 165, 233, 0.25) 58%, transparent 58%);
+    }
+    .liquid {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 55%;
+      background: rgba(35, 159, 199, 0.32);
+      border-radius: 0 0 28px 28px;
+      transition: all 0.8s ease;
+    }
+    .bubble {
+      position: absolute;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #ffffff;
+      opacity: 0;
+    }
+    .reaction-running .bubble:nth-child(1) { left: 45%; bottom: 25px; animation: up 1.5s infinite ease-in; }
+    .reaction-running .bubble:nth-child(2) { left: 58%; bottom: 15px; animation: up 1.5s infinite ease-in 0.5s; }
+    .reaction-running .bubble:nth-child(3) { left: 35%; bottom: 10px; animation: up 1.5s infinite ease-in 0.9s; }
+    @keyframes up {
+      0% { transform: translateY(0); opacity: 0; }
+      30% { opacity: 0.9; }
+      100% { transform: translateY(-75px); opacity: 0; }
+    }
+    .flame-element {
+      font-size: 50px;
+      text-align: center;
+      display: none;
+      filter: drop-shadow(0 0 12px rgba(249, 115, 22, 0.7));
+    }
+    .reaction-running.has-flame .flame-element {
+      display: block;
+      animation: pulseGlow 0.9s infinite ease-in-out alternate;
     }
     @keyframes pulseGlow {
-      0%, 100% { opacity: 0.35; transform: scale(1); }
-      50% { opacity: 0.8; transform: scale(1.06); }
+      0% { transform: scale(0.95); opacity: 0.8; }
+      100% { transform: scale(1.1); opacity: 1; }
     }
-    .flame-glow {
-      animation: pulseGlow 1.2s infinite ease-in-out;
+    .reaction-running .beaker {
+      animation: shake 0.35s infinite alternate;
+    }
+    @keyframes shake {
+      to { transform: rotate(1.2deg) scale(1.01); }
+    }
+    .mat-pill {
+      padding: 7px 14px;
+      border-radius: 12px;
+      background: #ffffff;
+      border: 1px solid #b6dbe8;
+      font-weight: 700;
+      color: #1261a0;
+      font-size: 13px;
+    }
+    .dark .mat-pill {
+      background: #1e334a;
+      border-color: #2e557b;
+      color: #7dd3fc;
+    }
+    .eq-box {
+      font-size: 21px;
+      font-weight: 800;
+      text-align: center;
+      background: #f7fbfd;
+      border-radius: 14px;
+      padding: 14px;
+      margin: 12px 0;
+      border: 1px solid #d4ebf5;
+      color: #1261a0;
+      font-family: 'Fira Code', monospace;
+    }
+    .dark .eq-box {
+      background: #0f1c2b;
+      border-color: #27496d;
+      color: #38bdf8;
+    }
+    .question-box {
+      margin-top: 16px;
+      padding: 16px;
+      border-radius: 16px;
+      background: #fff8df;
+      border: 1px solid #f1d77b;
+      color: #78350f;
+    }
+    .dark .question-box {
+      background: #2a2410;
+      border-color: #785a10;
+      color: #fef08a;
+    }
+    .ans-btn {
+      border: 2px solid #c8d9e2;
+      background: #ffffff;
+      border-radius: 12px;
+      padding: 11px;
+      cursor: pointer;
+      font-weight: 700;
+      font-size: 13px;
+      color: #17324d;
+      transition: all 0.15s ease;
+    }
+    .dark .ans-btn {
+      background: #1a2a3d;
+      border-color: #2e557b;
+      color: #e0f2fe;
+    }
+    .ans-btn:hover {
+      border-color: #1261a0;
+      color: #1261a0;
+    }
+    .dark .ans-btn:hover {
+      border-color: #38bdf8;
+      color: #38bdf8;
+    }
+    .progress-bar-wrap {
+      height: 10px;
+      background: #dcecf3;
+      border-radius: 20px;
+      overflow: hidden;
+      margin: 12px 0;
+    }
+    .dark .progress-bar-wrap {
+      background: #1a2a3d;
+    }
+    .sheet-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+    .sheet-table th, .sheet-table td {
+      border: 1px solid #c7dce5;
+      padding: 10px 12px;
+      text-align: center;
+      font-size: 13px;
+    }
+    .dark .sheet-table th, .dark .sheet-table td {
+      border-color: #284766;
+    }
+    .sheet-table th {
+      background: #eaf5f9;
+      color: #1261a0;
+      font-weight: 700;
+    }
+    .dark .sheet-table th {
+      background: #13273c;
+      color: #7dd3fc;
     }
     @media print {
       header, nav, button, .no-print { display: none !important; }
@@ -63,65 +282,69 @@
     }
   </style>
 </head>
-<body class="bg-slate-50 text-slate-800 dark:bg-slate-900 dark:text-slate-100 min-h-screen flex flex-col selection:bg-emerald-500 selection:text-white">
+<body class="selection:bg-cyan-500 selection:text-white">
 
-  <!-- ======================== БАС ЖАҚТАУ (HEADER) ======================== -->
-  <header class="bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 sticky top-0 z-40 shadow-sm transition-colors">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2.5 flex justify-between items-center gap-3">
+  <!-- ======================== ШАПКА САЙТА (HEADER) ======================== -->
+  <header class="sticky top-0 z-40 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-sky-100 dark:border-slate-800 shadow-sm transition-colors">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 py-2.5 flex justify-between items-center gap-3">
       
       <!-- Логотип -->
       <div class="flex items-center space-x-3">
-        <div class="w-10 h-10 rounded-2xl bg-gradient-to-br from-emerald-500 via-teal-600 to-cyan-600 flex items-center justify-center text-white font-black text-xl shadow-md shadow-emerald-500/25">
+        <div class="w-10 h-10 rounded-2xl bg-gradient-to-br from-blue-600 via-sky-600 to-cyan-500 flex items-center justify-center text-white font-black text-xl shadow-md shadow-blue-600/25">
           <i class="fa-solid fa-flask-vial"></i>
         </div>
         <div>
           <div class="flex items-center gap-2">
             <h1 class="font-extrabold text-lg sm:text-xl tracking-tight text-slate-900 dark:text-white">
-              ChemLab <span class="text-emerald-600 dark:text-emerald-400">Edu</span>
+              ChemLab <span class="text-sky-600 dark:text-sky-400">Edu</span>
             </h1>
-            <span class="text-[10px] bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-500/30 px-2 py-0.5 rounded-full font-mono uppercase font-bold">
+            <span class="text-[10px] bg-sky-100 text-sky-800 dark:bg-sky-500/20 dark:text-sky-300 border border-sky-200 dark:border-sky-500/30 px-2 py-0.5 rounded-full font-mono uppercase font-bold">
               8-Сынып
             </span>
           </div>
-          <p class="text-[11px] text-slate-500 dark:text-slate-400 font-medium hidden sm:block">Виртуалды Химиялық Зертхана және Тапсырмалар Кешені</p>
+          <p class="text-[11px] text-slate-500 dark:text-slate-400 font-medium hidden sm:block">§9. Химиялық реакциялардың типтері</p>
         </div>
       </div>
 
       <!-- Басты қосымшалар навигациясы -->
-      <nav class="hidden md:flex space-x-1 bg-slate-100 dark:bg-slate-950 p-1 rounded-2xl border border-slate-200 dark:border-slate-800 text-xs font-semibold">
-        <button onclick="switchTab('tasks')" id="tab-tasks" class="px-3.5 py-2 rounded-xl bg-white dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 shadow-sm transition-all flex items-center gap-2">
-          <i class="fa-solid fa-clipboard-list"></i> Тапсырмалар мен Шешімдер
+      <nav class="hidden md:flex space-x-1.5 p-1 bg-sky-50 dark:bg-slate-950 rounded-2xl border border-sky-100 dark:border-slate-800 text-xs font-semibold">
+        <button onclick="switchTab('tasks')" id="tab-tasks" class="tab-pill active">
+          <i class="fa-solid fa-clipboard-list text-sky-500"></i> Тапсырмалар (§9)
         </button>
-        <button onclick="switchTab('sim')" id="tab-sim" class="px-3.5 py-2 rounded-xl text-slate-600 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-300 transition-all flex items-center gap-2">
-          <i class="fa-solid fa-fire-burner"></i> Симуляция Тәжірибесі
+        <button onclick="switchTab('calc')" id="tab-calc" class="tab-pill">
+          <i class="fa-solid fa-scale-unbalanced-flip text-sky-500"></i> Тәжірибе және Таразы
         </button>
-        <button onclick="switchTab('explorer')" id="tab-explorer" class="px-3.5 py-2 rounded-xl text-slate-600 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-300 transition-all flex items-center gap-2">
-          <i class="fa-solid fa-atom"></i> Молекула Инспекторы
+        <button onclick="switchTab('lab')" id="tab-lab" class="tab-pill">
+          <i class="fa-solid fa-flask text-sky-500"></i> Реакциялар Зертханасы
         </button>
-        <button onclick="handleTeacherTabClick()" id="tab-teacher" class="px-3.5 py-2 rounded-xl text-slate-600 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-300 transition-all flex items-center gap-2">
-          <i class="fa-solid fa-chalkboard-user"></i> Мұғалім Панелі
+        <button onclick="switchTab('sorting')" id="tab-sorting" class="tab-pill">
+          <i class="fa-solid fa-boxes-stacked text-sky-500"></i> Типтерді Сұрыптау
+        </button>
+        <button onclick="switchTab('balance')" id="tab-balance" class="tab-pill">
+          <i class="fa-solid fa-scale-balanced text-sky-500"></i> Теңестіру
+        </button>
+        <button onclick="handleTeacherTabClick()" id="tab-teacher" class="tab-pill">
+          <i class="fa-solid fa-chalkboard-user text-sky-500"></i> Мұғалім Панелі
           <span id="teacherQueueBadge" class="hidden ml-1 px-1.5 py-0.2 text-[10px] bg-amber-500 text-white rounded-full font-bold">0</span>
         </button>
       </nav>
 
-      <!-- Оң жақ панель: стиль және қолданушы -->
-      <div class="flex items-center space-x-2 sm:space-x-3">
-        <!-- Тақырыпты ауыстыру батырмасы (Ақ түс әдепкі бойынша) -->
-        <button id="themeToggleBtn" onclick="toggleTheme()" class="p-2 sm:px-3 sm:py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition flex items-center gap-1.5 text-xs font-semibold" title="Тақырыпты ауыстыру">
-          <i id="themeIcon" class="fa-solid fa-moon text-indigo-500"></i>
+      <!-- Оң жақ: стиль ауыстыру және қолданушы -->
+      <div class="flex items-center space-x-2">
+        <button id="themeToggleBtn" onclick="toggleTheme()" class="p-2 sm:px-3 sm:py-1.5 rounded-xl border border-sky-100 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-sky-50 dark:hover:bg-slate-700 transition flex items-center gap-1.5 text-xs font-semibold" title="Тақырыпты ауыстыру">
+          <i id="themeIcon" class="fa-solid fa-moon text-sky-600"></i>
           <span id="themeText" class="hidden sm:inline">Қараңғы тақырып</span>
         </button>
 
-        <!-- Ағымдағы қолданушы бейджі -->
-        <div id="userProfileBadge" class="flex items-center space-x-2 bg-emerald-50 dark:bg-slate-800/80 border border-emerald-200 dark:border-slate-700 px-3 py-1.5 rounded-xl">
-          <div id="userAvatarDot" class="w-7 h-7 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-bold text-xs">
+        <div id="userProfileBadge" class="flex items-center space-x-2 bg-white dark:bg-slate-800 border border-sky-200 dark:border-slate-700 px-3 py-1.5 rounded-xl shadow-sm">
+          <div id="userAvatarDot" class="w-7 h-7 rounded-lg bg-sky-600 text-white flex items-center justify-center font-bold text-xs">
             ?
           </div>
           <div class="text-left">
-            <div id="userNameDisplay" class="text-xs font-bold text-slate-900 dark:text-slate-100 max-w-[120px] truncate">Жүктелуде...</div>
-            <div id="userRoleDisplay" class="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">Оқушы</div>
+            <div id="userNameDisplay" class="text-xs font-bold text-slate-800 dark:text-slate-100 max-w-[110px] truncate">Жүктелуде...</div>
+            <div id="userRoleDisplay" class="text-[10px] text-sky-600 dark:text-sky-400 font-semibold">Оқушы</div>
           </div>
-          <button onclick="promptUserChange()" class="text-slate-400 hover:text-slate-600 dark:hover:text-white ml-1 text-xs" title="Қолданушыны ауыстыру / Шығу">
+          <button onclick="promptUserChange()" class="text-slate-400 hover:text-sky-600 dark:hover:text-white ml-1 text-xs" title="Қолданушыны ауыстыру">
             <i class="fa-solid fa-arrow-right-from-bracket"></i>
           </button>
         </div>
@@ -129,85 +352,76 @@
     </div>
 
     <!-- Мобильді навигация -->
-    <div class="flex md:hidden bg-slate-100 dark:bg-slate-950 text-xs overflow-x-auto p-2 border-t border-slate-200 dark:border-slate-800 space-x-1">
-      <button onclick="switchTab('tasks')" id="mob-tab-tasks" class="px-3 py-1.5 rounded-lg bg-white dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 font-bold whitespace-nowrap shadow-sm">Тапсырмалар</button>
-      <button onclick="switchTab('sim')" id="mob-tab-sim" class="px-3 py-1.5 rounded-lg text-slate-600 dark:text-slate-400 whitespace-nowrap">Тәжірибе</button>
-      <button onclick="switchTab('explorer')" id="mob-tab-explorer" class="px-3 py-1.5 rounded-lg text-slate-600 dark:text-slate-400 whitespace-nowrap">Инспектор</button>
-      <button onclick="handleTeacherTabClick()" id="mob-tab-teacher" class="px-3 py-1.5 rounded-lg text-slate-600 dark:text-slate-400 whitespace-nowrap">Мұғалім</button>
+    <div class="flex md:hidden bg-sky-50 dark:bg-slate-950 text-xs overflow-x-auto p-2 border-t border-sky-100 dark:border-slate-800 space-x-1.5">
+      <button onclick="switchTab('tasks')" id="mob-tab-tasks" class="px-3 py-1.5 rounded-lg bg-white dark:bg-slate-800 text-sky-600 dark:text-sky-400 font-bold whitespace-nowrap shadow-sm">Тапсырмалар</button>
+      <button onclick="switchTab('calc')" id="mob-tab-calc" class="px-3 py-1.5 rounded-lg text-slate-600 dark:text-slate-400 whitespace-nowrap font-medium">Тәжірибе</button>
+      <button onclick="switchTab('lab')" id="mob-tab-lab" class="px-3 py-1.5 rounded-lg text-slate-600 dark:text-slate-400 whitespace-nowrap font-medium">Зертхана</button>
+      <button onclick="switchTab('sorting')" id="mob-tab-sorting" class="px-3 py-1.5 rounded-lg text-slate-600 dark:text-slate-400 whitespace-nowrap font-medium">Сұрыптау</button>
+      <button onclick="switchTab('balance')" id="mob-tab-balance" class="px-3 py-1.5 rounded-lg text-slate-600 dark:text-slate-400 whitespace-nowrap font-medium">Теңестіру</button>
+      <button onclick="handleTeacherTabClick()" id="mob-tab-teacher" class="px-3 py-1.5 rounded-lg text-slate-600 dark:text-slate-400 whitespace-nowrap font-medium">Мұғалім</button>
     </div>
   </header>
 
   <!-- Хабарламалар контейнері -->
   <div class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none" id="toastContainer"></div>
 
-  <!-- ======================== НЕГІЗГІ БӨЛІМ ======================== -->
-  <main class="flex-grow max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
+  <!-- ======================== НЕГІЗГІ ҚАБЫРҒА (MAIN WRAPPER) ======================== -->
+  <main class="max-w-6xl w-full mx-auto p-4 sm:p-6 space-y-6 flex-grow">
 
-    <!-- ==================== 1. ТАПСЫРМАЛАР МЕН ШЕШІМДЕР (ОҚУШЫ) ==================== -->
-    <section id="view-tasks" class="space-y-6">
-      
-      <!-- Оқушы баннері -->
-      <div class="bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-700 rounded-3xl p-6 text-white shadow-lg relative overflow-hidden flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div class="z-10 space-y-1">
-          <span class="inline-flex items-center gap-1.5 px-3 py-1 bg-white/20 backdrop-blur-md rounded-full text-xs font-semibold text-emerald-100">
-            <span class="w-2 h-2 rounded-full bg-emerald-300 animate-pulse"></span>
-            Оқушының жұмыс кабинеті
-          </span>
-          <h2 class="text-2xl sm:text-3xl font-black tracking-tight">Есептерді шешу және жедел кері байланыс</h2>
-          <p class="text-emerald-100 text-xs sm:text-sm max-w-2xl">
-            Сол жақтағы тізімнен тапсырманы таңдап, химиялық символдар панелінің көмегімен реакция теңдеулерін енгізіңіз және мұғалімге тексеруге жіберіңіз.
-          </p>
-        </div>
-        <div class="z-10 bg-white/10 backdrop-blur-md border border-white/20 px-4 py-3 rounded-2xl text-right">
-          <div class="text-[11px] text-emerald-100 uppercase font-mono">Ағымдағы профиль:</div>
-          <div class="font-bold text-sm text-white" id="bannerStudentName">Оқушы</div>
-          <div class="text-[11px] text-emerald-200 mt-0.5">8-Сынып: теория мен тәжірибелік тапсырмалар</div>
-        </div>
+    <!-- HERO БАННЕР (Himiya_virtual_lab стилі) -->
+    <div class="hero-banner flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <div class="space-y-1">
+        <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight">Химиялық реакциялар зертханасы</h1>
+        <p class="text-xs sm:text-sm text-sky-100 opacity-95">8-сынып · §9. Химиялық реакциялардың типтері (8.2.2.1 — заттардың саны мен құрамы бойынша жіктеу)</p>
       </div>
+      <div class="bg-white/15 backdrop-blur-md border border-white/25 px-4 py-2.5 rounded-2xl text-right">
+        <div class="text-[11px] text-sky-100 uppercase font-mono">Оқушы:</div>
+        <div class="font-bold text-sm text-white" id="bannerStudentName">Оқушы</div>
+      </div>
+    </div>
 
-      <!-- Негізгі жұмыс торы -->
+    <!-- ==================== 1-ҚОЙЫНДЫ: ТАПСЫРМАЛАР МЕН ШЕШІМДЕР (§9) ==================== -->
+    <section id="view-tasks" class="space-y-6">
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
         
-        <!-- Сол баған: Тапсырмалар тізімі -->
+        <!-- Сол жақ: Тапсырмалар тізімі -->
         <div class="lg:col-span-4 space-y-3">
-          <div class="bg-white dark:bg-slate-800 rounded-3xl p-5 border border-slate-200 dark:border-slate-700 shadow-sm space-y-3">
-            <div class="flex justify-between items-center border-b border-slate-100 dark:border-slate-700/60 pb-3">
-              <h3 class="font-extrabold text-sm text-slate-800 dark:text-slate-200 flex items-center gap-2">
-                <i class="fa-solid fa-list-check text-emerald-500"></i> Тапсырмалар тізімі
+          <div class="lab-card space-y-3">
+            <div class="flex justify-between items-center border-b border-sky-100 dark:border-slate-700/80 pb-3">
+              <h3 class="font-extrabold text-sm text-slate-800 dark:text-slate-100 flex items-center gap-2">
+                <i class="fa-solid fa-list-check text-sky-600"></i> §9 Тапсырмалар тізімі
               </h3>
-              <span id="tasksTotalCounter" class="text-xs font-mono bg-emerald-50 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-300 px-2 py-0.5 rounded-lg border border-emerald-200 dark:border-emerald-500/30">
-                0 тапсырма
+              <span id="tasksTotalCounter" class="text-xs font-mono bg-sky-50 dark:bg-sky-500/20 text-sky-600 dark:text-sky-300 px-2 py-0.5 rounded-lg border border-sky-200 dark:border-sky-500/30">
+                4 тапсырма
               </span>
             </div>
 
-            <!-- Тапсырмалар карточкалары -->
             <div id="studentTasksList" class="space-y-2.5 max-h-[580px] overflow-y-auto pr-1">
               <!-- JS арқылы рендеринг -->
             </div>
           </div>
         </div>
 
-        <!-- Оң баған: Таңдалған тапсырманы шешу аймағы -->
+        <!-- Оң жақ: Шешу аймағы -->
         <div class="lg:col-span-8">
-          <div class="bg-white dark:bg-slate-800 rounded-3xl p-6 border border-slate-200 dark:border-slate-700 shadow-sm min-h-[500px] flex flex-col justify-between" id="taskWorkspaceCard">
+          <div class="lab-card min-h-[520px] flex flex-col justify-between" id="taskWorkspaceCard">
             
             <div id="noTaskSelectedState" class="text-center py-20 text-slate-400 my-auto">
-              <i class="fa-solid fa-hand-pointer text-4xl mb-3 text-emerald-500/50"></i>
-              <p class="font-semibold text-sm">Шешуді бастау үшін сол жақтағы тізімнен тапсырманы таңдаңыз</p>
+              <i class="fa-solid fa-hand-pointer text-4xl mb-3 text-sky-500/50"></i>
+              <p class="font-semibold text-sm">Тапсырманы орындау үшін сол жақтағы тізімнен біреуін таңдаңыз</p>
             </div>
 
             <div id="taskActiveContent" class="space-y-5 hidden">
               <!-- Тапсырма тақырыбы -->
-              <div class="border-b border-slate-100 dark:border-slate-700/80 pb-4 space-y-2">
+              <div class="border-b border-sky-100 dark:border-slate-700/80 pb-4 space-y-2">
                 <div class="flex justify-between items-start gap-3">
-                  <span id="taskDetailCategory" class="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300"></span>
+                  <span id="taskDetailCategory" class="px-2.5 py-1 rounded-full text-xs font-semibold bg-sky-100 dark:bg-sky-500/20 text-sky-700 dark:text-sky-300"></span>
                   <span id="taskDetailStatusBadge" class="text-xs font-bold px-3 py-1 rounded-full"></span>
                 </div>
-                <h3 id="taskDetailTitle" class="text-xl font-black text-slate-900 dark:text-white"></h3>
+                <h3 id="taskDetailTitle" class="text-xl font-extrabold text-slate-900 dark:text-white"></h3>
                 
-                <!-- Химиялық формула/нұсқаулық қорабы -->
-                <div id="taskDetailFormulaBox" class="bg-slate-50 dark:bg-slate-900 border-l-4 border-emerald-500 p-3 rounded-r-xl font-mono text-sm text-emerald-700 dark:text-emerald-400">
-                  <span class="text-[10px] uppercase block text-slate-400 font-sans font-semibold">Реакция сұлбасы немесе формуласы:</span>
+                <div id="taskDetailFormulaBox" class="bg-sky-50 dark:bg-slate-900 border-l-4 border-sky-600 p-3 rounded-r-xl font-mono text-sm text-sky-700 dark:text-sky-400">
+                  <span class="text-[10px] uppercase block text-slate-400 font-sans font-semibold">Реакция сұлбасы немесе анықтамасы:</span>
                   <span id="taskDetailFormula" class="font-bold"></span>
                 </div>
 
@@ -218,44 +432,42 @@
               <div id="feedbackCard" class="hidden p-4 rounded-2xl border transition-all">
                 <div class="flex justify-between items-center mb-1.5">
                   <span class="font-extrabold text-xs flex items-center gap-1.5" id="feedbackTitle">
-                    <i class="fa-solid fa-graduation-cap"></i> Мұғалімнің кері байланысы:
+                    <i class="fa-solid fa-graduation-cap text-sky-600"></i> Мұғалімнің кері байланысы:
                   </span>
                   <span id="feedbackScorePill" class="text-xs font-bold px-2.5 py-0.5 rounded-lg font-mono"></span>
                 </div>
                 <p id="feedbackTextDisplay" class="text-xs font-medium leading-relaxed"></p>
               </div>
 
-              <!-- Шешім енгізу формасы -->
+              <!-- Жауап енгізу формасы -->
               <div class="space-y-3">
                 <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
                   Сіздің жауабыңыз және шешу жолы:
                 </label>
 
-                <!-- Химиялық символдар пернетақтасы -->
-                <div class="flex flex-wrap items-center gap-1.5 p-2 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700">
+                <!-- Химиялық таңбалар панелі -->
+                <div class="flex flex-wrap items-center gap-1.5 p-2 bg-sky-50/60 dark:bg-slate-900 rounded-xl border border-sky-100 dark:border-slate-800">
                   <span class="text-[11px] font-semibold text-slate-400 mr-1">Хим. символдар:</span>
-                  <button type="button" onclick="insertChemSym('₀')" class="px-2 py-0.5 text-xs font-bold rounded bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-emerald-500 text-slate-700 dark:text-slate-300">₀</button>
-                  <button type="button" onclick="insertChemSym('₁')" class="px-2 py-0.5 text-xs font-bold rounded bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-emerald-500 text-slate-700 dark:text-slate-300">₁</button>
-                  <button type="button" onclick="insertChemSym('₂')" class="px-2 py-0.5 text-xs font-bold rounded bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-emerald-500 text-slate-700 dark:text-slate-300">₂</button>
-                  <button type="button" onclick="insertChemSym('₃')" class="px-2 py-0.5 text-xs font-bold rounded bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-emerald-500 text-slate-700 dark:text-slate-300">₃</button>
-                  <button type="button" onclick="insertChemSym('₄')" class="px-2 py-0.5 text-xs font-bold rounded bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-emerald-500 text-slate-700 dark:text-slate-300">₄</button>
-                  <button type="button" onclick="insertChemSym('⁺')" class="px-2 py-0.5 text-xs font-bold rounded bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-emerald-500 text-slate-700 dark:text-slate-300">⁺</button>
-                  <button type="button" onclick="insertChemSym('⁻')" class="px-2 py-0.5 text-xs font-bold rounded bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-emerald-500 text-slate-700 dark:text-slate-300">⁻</button>
-                  <button type="button" onclick="insertChemSym('²⁺')" class="px-2 py-0.5 text-xs font-bold rounded bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-emerald-500 text-slate-700 dark:text-slate-300">²⁺</button>
-                  <button type="button" onclick="insertChemSym('³⁺')" class="px-2 py-0.5 text-xs font-bold rounded bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-emerald-500 text-slate-700 dark:text-slate-300">³⁺</button>
-                  <button type="button" onclick="insertChemSym('²⁻')" class="px-2 py-0.5 text-xs font-bold rounded bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-emerald-500 text-slate-700 dark:text-slate-300">²⁻</button>
-                  <button type="button" onclick="insertChemSym('→')" class="px-2 py-0.5 text-xs font-bold rounded bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-emerald-500 text-emerald-600 dark:text-emerald-400">→</button>
-                  <button type="button" onclick="insertChemSym('⇄')" class="px-2 py-0.5 text-xs font-bold rounded bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-emerald-500 text-emerald-600 dark:text-emerald-400">⇄</button>
-                  <button type="button" onclick="insertChemSym('↑')" class="px-2 py-0.5 text-xs font-bold rounded bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-emerald-500 text-sky-600">↑</button>
-                  <button type="button" onclick="insertChemSym('↓')" class="px-2 py-0.5 text-xs font-bold rounded bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-emerald-500 text-amber-600">↓</button>
-                  <button type="button" onclick="insertChemSym('Δ')" class="px-2 py-0.5 text-xs font-bold rounded bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-emerald-500 text-slate-700 dark:text-slate-300">Δ</button>
-                  <button type="button" onclick="insertChemSym('t°')" class="px-2 py-0.5 text-xs font-bold rounded bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-emerald-500 text-rose-600">t°</button>
+                  <button type="button" onclick="insertChemSym('₀')" class="px-2 py-0.5 text-xs font-bold rounded bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-sky-500 text-slate-700 dark:text-slate-300">₀</button>
+                  <button type="button" onclick="insertChemSym('₁')" class="px-2 py-0.5 text-xs font-bold rounded bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-sky-500 text-slate-700 dark:text-slate-300">₁</button>
+                  <button type="button" onclick="insertChemSym('₂')" class="px-2 py-0.5 text-xs font-bold rounded bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-sky-500 text-slate-700 dark:text-slate-300">₂</button>
+                  <button type="button" onclick="insertChemSym('₃')" class="px-2 py-0.5 text-xs font-bold rounded bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-sky-500 text-slate-700 dark:text-slate-300">₃</button>
+                  <button type="button" onclick="insertChemSym('₄')" class="px-2 py-0.5 text-xs font-bold rounded bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-sky-500 text-slate-700 dark:text-slate-300">₄</button>
+                  <button type="button" onclick="insertChemSym('⁺')" class="px-2 py-0.5 text-xs font-bold rounded bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-sky-500 text-slate-700 dark:text-slate-300">⁺</button>
+                  <button type="button" onclick="insertChemSym('⁻')" class="px-2 py-0.5 text-xs font-bold rounded bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-sky-500 text-slate-700 dark:text-slate-300">⁻</button>
+                  <button type="button" onclick="insertChemSym('²⁺')" class="px-2 py-0.5 text-xs font-bold rounded bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-sky-500 text-slate-700 dark:text-slate-300">²⁺</button>
+                  <button type="button" onclick="insertChemSym('³⁺')" class="px-2 py-0.5 text-xs font-bold rounded bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-sky-500 text-slate-700 dark:text-slate-300">³⁺</button>
+                  <button type="button" onclick="insertChemSym('→')" class="px-2 py-0.5 text-xs font-bold rounded bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-sky-500 text-sky-600">→</button>
+                  <button type="button" onclick="insertChemSym('⇄')" class="px-2 py-0.5 text-xs font-bold rounded bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-sky-500 text-sky-600">⇄</button>
+                  <button type="button" onclick="insertChemSym('↑')" class="px-2 py-0.5 text-xs font-bold rounded bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-sky-500 text-blue-600">↑</button>
+                  <button type="button" onclick="insertChemSym('↓')" class="px-2 py-0.5 text-xs font-bold rounded bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-sky-500 text-amber-600">↓</button>
+                  <button type="button" onclick="insertChemSym('t°')" class="px-2 py-0.5 text-xs font-bold rounded bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-sky-500 text-rose-600">t°</button>
                 </div>
 
-                <textarea id="studentAnswerTextarea" rows="6" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 text-xs sm:text-sm font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500 transition" placeholder="Коэффициенттерді, электрондық балансты, реакция теңдеуін немесе массалық есептеулерді жазыңыз..."></textarea>
+                <textarea id="studentAnswerTextarea" rows="6" class="w-full bg-slate-50 dark:bg-slate-900 border border-sky-100 dark:border-slate-700 rounded-2xl p-4 text-xs sm:text-sm font-mono focus:outline-none focus:ring-2 focus:ring-sky-500 transition" placeholder="Коэффициенттерді, электрондық балансты, реакция теңдеуін немесе анықтамасын жазыңыз..."></textarea>
 
-                <div class="flex items-center justify-between pt-2">
-                  <button id="btnSubmitSolution" onclick="submitStudentSolution()" class="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-extrabold px-6 py-3 rounded-2xl text-xs sm:text-sm shadow-md shadow-emerald-600/25 active:scale-95 transition flex items-center gap-2">
+                <div class="flex items-center justify-between pt-1">
+                  <button id="btnSubmitSolution" onclick="submitStudentSolution()" class="bg-gradient-to-r from-blue-600 to-sky-600 hover:from-blue-700 hover:to-sky-700 text-white font-extrabold px-6 py-3 rounded-2xl text-xs sm:text-sm shadow-md shadow-blue-600/25 active:scale-95 transition flex items-center gap-2">
                     <i class="fa-solid fa-paper-plane"></i>
                     <span>Шешімді мұғалімге жіберу</span>
                   </button>
@@ -270,38 +482,50 @@
       </div>
     </section>
 
-    <!-- ==================== 2. СИМУЛЯЦИЯ ТӘЖІРИБЕСІ ==================== -->
-    <section id="view-sim" class="space-y-6 hidden">
-      <!-- Симуляция баннері -->
-      <div class="bg-gradient-to-r from-sky-600 via-blue-700 to-indigo-800 rounded-3xl p-6 text-white shadow-lg relative overflow-hidden flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div class="space-y-1">
-          <span class="inline-flex items-center gap-1.5 px-3 py-1 bg-white/20 backdrop-blur-md rounded-full text-xs font-semibold text-sky-100">
-            <span class="w-2 h-2 rounded-full bg-sky-300 animate-ping"></span>
-            Интерактивті симуляция
+    <!-- ==================== 2-ҚОЙЫНДЫ: ТӘЖІРИБЕ ЖӘНЕ ТАРАЗЫ (КАЛЬКУЛЯТОР) ==================== -->
+    <section id="view-calc" class="space-y-6 hidden">
+      <!-- Басты тақырып карточкасы -->
+      <div class="lab-card flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+          <span class="inline-flex items-center gap-1.5 px-3 py-1 bg-sky-100 dark:bg-sky-500/20 border border-sky-200 dark:border-sky-500/30 rounded-full text-xs font-semibold text-sky-800 dark:text-sky-300 mb-1">
+            <span class="w-2 h-2 rounded-full bg-sky-500 animate-ping"></span>
+            Интерактивті таразы және симуляция
           </span>
-          <h2 class="text-2xl sm:text-3xl font-black">Әрекеттесуші заттардың массалық қатынасы (Пруст заңы)</h2>
-          <p class="text-sky-100 text-xs sm:text-sm max-w-2xl">
-            Түрлі массадағы реагенттерді электронды таразыда өлшеп, синтез реакциясын жүргізіңіз. Шектеуші реагент пен өнім шығымын зерттеңіз.
+          <h2 class="text-xl sm:text-2xl font-black text-slate-900 dark:text-white">Әрекеттесуші заттардың массалық қатынасы</h2>
+          <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+            Реагенттердің массасын сандық түрде қолмен жазыңыз немесе сырғытқышты жылжытыңыз. Электронды таразыда өлшеп, реакция өнімін бақылаңыз.
           </p>
         </div>
-        <div class="bg-white/10 backdrop-blur-md px-4 py-3 rounded-2xl border border-white/20">
-          <div class="text-[11px] text-sky-200 uppercase font-mono">Таңдалған реакция:</div>
-          <div class="font-bold text-sm text-white font-mono" id="currentReactionTitle">Cu + S = CuS (Мыс сульфиді)</div>
+        <div class="flex items-center space-x-3 bg-sky-50 dark:bg-slate-900 px-4 py-2.5 rounded-2xl border border-sky-100 dark:border-slate-800">
+          <i class="fa-solid fa-scale-balanced text-sky-600 text-2xl"></i>
+          <div>
+            <div class="text-[10px] text-slate-400 uppercase font-mono font-bold">Таңдалған реакция:</div>
+            <div class="font-bold text-xs font-mono text-sky-700 dark:text-sky-300" id="currentReactionTitle">Cu + S = CuS (Мыс сульфиді)</div>
+          </div>
         </div>
       </div>
 
+      <!-- Негізгі жұмыс кеңістігі -->
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        <!-- Реагенттерді басқару (Сол жақ) -->
+        
+        <!-- Сол жақ баған: Басқару және мәліметтерді қолмен енгізу (5 баған) -->
         <div class="lg:col-span-5 space-y-5">
-          <div class="bg-white dark:bg-slate-800 rounded-3xl p-6 border border-slate-200 dark:border-slate-700 shadow-sm space-y-4">
-            <h3 class="font-extrabold text-base text-slate-800 dark:text-slate-200 flex items-center gap-2">
-              <i class="fa-solid fa-sliders text-sky-500"></i> Реагенттер өлшемі
-            </h3>
+          <div class="lab-card space-y-4">
+            <div class="flex justify-between items-center border-b border-sky-100 dark:border-slate-700 pb-3">
+              <h3 class="font-extrabold text-sm text-slate-800 dark:text-slate-100 flex items-center gap-2">
+                <i class="fa-solid fa-sliders text-sky-600"></i> Реагенттер өлшемі (Қолмен енгізу)
+              </h3>
+              <span class="text-[11px] font-mono bg-sky-50 dark:bg-sky-500/20 text-sky-600 dark:text-sky-300 px-2 py-0.5 rounded-lg border border-sky-200 dark:border-sky-500/30 font-bold">
+                100% нақтылық
+              </span>
+            </div>
 
-            <!-- Реакция түрі -->
-            <div class="space-y-1">
-              <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase">Реакция түрін таңдаңыз:</label>
-              <select id="reactionSelect" onchange="changeReaction()" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-4 py-3 text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-500">
+            <!-- Реакция түрін таңдау -->
+            <div class="space-y-1.5">
+              <label class="block text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+                Реакция түрін таңдаңыз:
+              </label>
+              <select id="simReactionSelect" onchange="changeSimReaction()" class="w-full bg-sky-50/50 dark:bg-slate-900 border border-sky-200 dark:border-slate-700 rounded-xl px-3 py-2.5 text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-500">
                 <option value="CuS">1. Мыс + Күкірт → Мыс(II) сульфиді (Cu + S = CuS)</option>
                 <option value="MgO">2. Магний + Оттек → Магний оксиді (2Mg + O₂ = 2MgO)</option>
                 <option value="H2O">3. Сутек + Оттек → Су синтезі (2H₂ + O₂ = 2H₂O)</option>
@@ -310,204 +534,529 @@
               </select>
             </div>
 
-            <!-- 1-реагент -->
-            <div class="bg-slate-50 dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2">
+            <!-- 1-реагент: Сырғытқыш және санмен қолмен енгізу -->
+            <div class="bg-sky-50/50 dark:bg-slate-900/60 p-4 rounded-2xl border border-sky-100 dark:border-slate-800 space-y-2.5">
               <div class="flex justify-between items-center">
-                <span class="font-bold text-xs sm:text-sm text-slate-700 dark:text-slate-300" id="r1-label">1-реагент: Мыс (Cu)</span>
-                <span class="font-black text-sky-600 dark:text-sky-400 text-base font-mono" id="r1-val">6.40 г</span>
+                <label class="font-bold text-xs sm:text-sm text-slate-800 dark:text-slate-200" id="sim-r1-label">
+                  1-реагент: Мыс (Cu)
+                </label>
+                <div class="flex items-center gap-1.5">
+                  <input type="number" id="sim-r1-input" min="0.1" max="50" step="0.1" value="6.4" oninput="handleSimInputChange('r1')" class="w-20 px-2 py-1 bg-white dark:bg-slate-900 border border-sky-200 dark:border-slate-700 rounded-lg text-right font-black font-mono text-sm text-sky-600 dark:text-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-500">
+                  <span class="text-xs font-bold text-slate-500">г</span>
+                </div>
               </div>
-              <input type="range" id="r1-slider" min="0.5" max="15" value="6.4" step="0.1" oninput="updateSimInputs()" class="w-full accent-sky-500 cursor-pointer custom-slider">
+              <input type="range" id="sim-r1-slider" min="0.1" max="20" step="0.1" value="6.4" oninput="handleSimSliderChange('r1')" class="w-full accent-sky-600 cursor-pointer">
+              <div class="flex justify-between text-[10px] text-slate-400 font-mono">
+                <span>0.1 г</span>
+                <span>10.0 г</span>
+                <span>20.0 г</span>
+              </div>
             </div>
 
-            <!-- 2-реагент -->
-            <div class="bg-slate-50 dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2">
+            <!-- 2-реагент: Сырғытқыш және санмен қолмен енгізу -->
+            <div class="bg-sky-50/50 dark:bg-slate-900/60 p-4 rounded-2xl border border-sky-100 dark:border-slate-800 space-y-2.5">
               <div class="flex justify-between items-center">
-                <span class="font-bold text-xs sm:text-sm text-slate-700 dark:text-slate-300" id="r2-label">2-реагент: Күкірт (S)</span>
-                <span class="font-black text-emerald-600 dark:text-emerald-400 text-base font-mono" id="r2-val">3.20 г</span>
+                <label class="font-bold text-xs sm:text-sm text-slate-800 dark:text-slate-200" id="sim-r2-label">
+                  2-реагент: Күкірт (S)
+                </label>
+                <div class="flex items-center gap-1.5">
+                  <input type="number" id="sim-r2-input" min="0.1" max="50" step="0.1" value="3.2" oninput="handleSimInputChange('r2')" class="w-20 px-2 py-1 bg-white dark:bg-slate-900 border border-sky-200 dark:border-slate-700 rounded-lg text-right font-black font-mono text-sm text-emerald-600 dark:text-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                  <span class="text-xs font-bold text-slate-500">г</span>
+                </div>
               </div>
-              <input type="range" id="r2-slider" min="0.5" max="15" value="3.2" step="0.1" oninput="updateSimInputs()" class="w-full accent-emerald-500 cursor-pointer custom-slider">
+              <input type="range" id="sim-r2-slider" min="0.1" max="20" step="0.1" value="3.2" oninput="handleSimSliderChange('r2')" class="w-full accent-emerald-500 cursor-pointer">
+              <div class="flex justify-between text-[10px] text-slate-400 font-mono">
+                <span>0.1 г</span>
+                <span>10.0 г</span>
+                <span>20.0 г</span>
+              </div>
             </div>
 
-            <!-- Қыздыру батырмалары -->
-            <div class="pt-2 flex gap-3">
-              <button id="btn-react" onclick="runReaction()" class="flex-1 bg-gradient-to-r from-sky-600 to-blue-600 hover:from-sky-500 hover:to-blue-500 active:scale-95 text-white font-extrabold py-3.5 px-4 rounded-2xl shadow-md shadow-sky-600/30 transition flex items-center justify-center gap-2 text-xs sm:text-sm">
-                <i class="fa-solid fa-fire text-amber-300"></i>
+            <!-- Әрекет түймелері -->
+            <div class="pt-1 flex gap-2.5">
+              <button id="simBtnReact" onclick="runSimReaction()" class="flex-1 bg-gradient-to-r from-blue-600 to-sky-600 hover:from-blue-700 hover:to-sky-700 text-white font-extrabold py-3 px-4 rounded-2xl shadow-md shadow-blue-600/20 active:scale-95 transition flex items-center justify-center gap-2 text-xs sm:text-sm">
+                <i class="fa-solid fa-fire text-amber-300 animate-pulse"></i>
                 <span>Қыздыру және Араластыру</span>
               </button>
-              <button onclick="resetSim()" class="bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 font-bold p-3.5 rounded-2xl border border-slate-200 dark:border-slate-700 transition" title="Қайтару">
+              <button onclick="resetSim()" class="bg-sky-100 hover:bg-sky-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold py-3 px-4 rounded-2xl transition" title="Қайта орнату">
                 <i class="fa-solid fa-rotate-left"></i>
               </button>
             </div>
           </div>
-        </div>
 
-        <!-- Таразы мен тигель көрінісі (Оң жақ) -->
-        <div class="lg:col-span-7 space-y-5">
-          <div class="bg-white dark:bg-slate-800 rounded-3xl p-6 border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col justify-between min-h-[420px]">
-            <div class="flex justify-between items-center border-b border-slate-100 dark:border-slate-700 pb-3">
-              <div class="flex items-center space-x-2">
-                <span id="status-badge" class="w-3.5 h-3.5 rounded-full bg-amber-400 animate-pulse"></span>
-                <span id="status-text" class="text-xs font-mono tracking-wider text-slate-600 dark:text-slate-300 uppercase font-semibold">Дайын: Қыздыруды күтуде</span>
-              </div>
-              <div class="text-xs font-mono bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 px-3 py-1 rounded-full text-slate-500">
-                Сандық таразы №1
-              </div>
-            </div>
-
-            <!-- Таразы мен ыдыс -->
-            <div class="my-6 flex flex-col items-center justify-center">
-              <div class="bg-slate-900 border-2 border-slate-700 rounded-2xl p-4 w-full max-w-xs text-center shadow-xl text-white">
-                <div class="text-[10px] uppercase font-mono text-slate-400 mb-0.5 tracking-widest">Сандық Таразы Блокы</div>
-                <div id="scale-display" class="font-mono text-4xl font-black text-emerald-400">
-                  9.60 <span class="text-xl text-emerald-500">г</span>
-                </div>
-                <div class="text-xs text-slate-400 mt-1 font-mono" id="scale-sub">Бастапқы реакциялық қоспа</div>
-              </div>
-
-              <!-- Пробирка және жалын -->
-              <div class="relative mt-8 flex flex-col items-center">
-                <div id="flame-container" class="hidden absolute -bottom-10 z-0">
-                  <div class="w-16 h-20 bg-gradient-to-t from-orange-600 via-amber-400 to-yellow-200 rounded-full blur-sm flame-glow shadow-xl shadow-orange-500/80"></div>
-                </div>
-                <div class="w-40 h-3.5 bg-slate-400 dark:bg-slate-700 rounded-lg shadow-sm mb-1 z-10"></div>
-                <div class="w-32 h-36 border-4 border-slate-400 dark:border-slate-600 border-t-0 rounded-b-full bg-slate-100/80 dark:bg-slate-900/80 backdrop-blur-md relative overflow-hidden flex flex-col justify-end p-2 shadow-inner z-10">
-                  <div id="substance-container" class="w-full transition-all duration-1000 rounded-b-full overflow-hidden flex flex-col justify-end" style="height: 65%;">
-                    <div id="substance-layer-1" class="w-full bg-amber-700/80 transition-all duration-1000 flex items-center justify-center text-[10px] font-mono text-white" style="height: 60%;">
-                      <span id="substance-layer-1-text">Cu</span>
-                    </div>
-                    <div id="substance-layer-2" class="w-full bg-yellow-400/90 transition-all duration-1000 flex items-center justify-center text-[10px] font-mono text-slate-900" style="height: 40%;">
-                      <span id="substance-layer-2-text">S</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Математикалық қатынас қорытындысы -->
-            <div id="calc-result-box" class="bg-slate-50 dark:bg-slate-950 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 text-xs font-mono space-y-1.5">
-              <div id="calc-step-1" class="text-slate-600 dark:text-slate-300">Теориялық қатынасы: m(Cu) : m(S) = 64 : 32 = 2 : 1</div>
-              <div id="calc-step-2" class="text-slate-600 dark:text-slate-300">Реакция теңдеуі: Cu + S = CuS</div>
-              <div id="calc-step-3" class="text-emerald-600 dark:text-emerald-400 font-bold">«Қыздыру және Араластыру» батырмасын басыңыз.</div>
+          <!-- Оқулық бойынша стандартты үлгілер -->
+          <div class="lab-card space-y-3">
+            <h4 class="font-extrabold text-xs uppercase tracking-wider text-sky-700 dark:text-sky-300 flex items-center gap-2">
+              <i class="fa-solid fa-vial-circle-check"></i> Оқулық бойынша стандартты үлгілер (§8/§9):
+            </h4>
+            <div class="grid grid-cols-2 gap-2 text-xs">
+              <button onclick="setSimPreset('CuS', 6.4, 3.2)" class="p-2.5 bg-sky-50/50 hover:bg-sky-100 dark:bg-slate-900 dark:hover:bg-slate-800 rounded-xl border border-sky-100 dark:border-slate-800 text-left transition">
+                <div class="font-bold text-slate-800 dark:text-slate-200">1. Тұрақты қатынас</div>
+                <div class="text-slate-500 font-mono text-[10px]">6.4г Cu + 3.2г S</div>
+                <div class="text-emerald-600 dark:text-emerald-400 font-bold text-[10px] mt-0.5">Артық зат жоқ (2:1)</div>
+              </button>
+              <button onclick="setSimPreset('CuS', 10.0, 3.2)" class="p-2.5 bg-sky-50/50 hover:bg-sky-100 dark:bg-slate-900 dark:hover:bg-slate-800 rounded-xl border border-sky-100 dark:border-slate-800 text-left transition">
+                <div class="font-bold text-slate-800 dark:text-slate-200">2. Мыс артық</div>
+                <div class="text-slate-500 font-mono text-[10px]">10.0г Cu + 3.2г S</div>
+                <div class="text-amber-600 dark:text-amber-400 font-bold text-[10px] mt-0.5">Артық: 3.6г Cu</div>
+              </button>
+              <button onclick="setSimPreset('MgO', 3.0, 2.0)" class="p-2.5 bg-sky-50/50 hover:bg-sky-100 dark:bg-slate-900 dark:hover:bg-slate-800 rounded-xl border border-sky-100 dark:border-slate-800 text-left transition">
+                <div class="font-bold text-slate-800 dark:text-slate-200">3. Магний жануы</div>
+                <div class="text-slate-500 font-mono text-[10px]">3.0г Mg + 2.0г O₂</div>
+                <div class="text-emerald-600 dark:text-emerald-400 font-bold text-[10px] mt-0.5">5.0г MgO өнімі (3:2)</div>
+              </button>
+              <button onclick="setSimPreset('H2O', 2.0, 16.0)" class="p-2.5 bg-sky-50/50 hover:bg-sky-100 dark:bg-slate-900 dark:hover:bg-slate-800 rounded-xl border border-sky-100 dark:border-slate-800 text-left transition">
+                <div class="font-bold text-slate-800 dark:text-slate-200">4. Су синтезі</div>
+                <div class="text-slate-500 font-mono text-[10px]">2.0г H₂ + 16.0г O₂</div>
+                <div class="text-sky-600 dark:text-sky-400 font-bold text-[10px] mt-0.5">18.0г H₂O (1:8)</div>
+              </button>
             </div>
           </div>
-        </div>
-      </div>
-    </section>
 
-    <!-- ==================== 3. МОЛЕКУЛА ИНСПЕКТОРЫ ==================== -->
-    <section id="view-explorer" class="space-y-6 hidden">
-      <div class="bg-white dark:bg-slate-800 rounded-3xl p-6 border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <h2 class="text-2xl font-black text-slate-900 dark:text-white">Молекулалардың Массалық Қатынасы Инспекторы</h2>
-          <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">Қосылыстардың атомдық қатынасын, салыстырмалы молекулалық массасын (Mr) және массалық үлесін (w) талдаңыз.</p>
-        </div>
-        <select id="compoundSelect" onchange="inspectCompound()" class="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-5 py-3 font-bold text-xs sm:text-sm text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500">
-          <option value="CO2">1. Көмірқышқыл газы - CO₂</option>
-          <option value="CuS">2. Мыс(II) сульфиді - CuS</option>
-          <option value="MgO">3. Магний оксиді - MgO</option>
-          <option value="SO2">4. Күкірт(IV) оксиді - SO₂</option>
-          <option value="SO3">5. Күкірт(VI) оксиді - SO₃</option>
-          <option value="FeO">6. Темір(II) оксиді - FeO</option>
-          <option value="Fe2O3">7. Темір(III) оксиді - Fe₂O₃</option>
-          <option value="Al2O3">8. Алюминий оксиді - Al₂O₃</option>
-          <option value="H2O">9. Су - H₂O</option>
-          <option value="P2O5">10. Фосфор(V) оксиді - P₂O₅</option>
-          <option value="CH4">11. Метан - CH₄</option>
-          <option value="NH3">12. Аммиак - NH₃</option>
-        </select>
-      </div>
-
-      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        <div class="lg:col-span-6 space-y-4">
-          <div class="bg-white dark:bg-slate-800 rounded-3xl p-6 border border-slate-200 dark:border-slate-700 shadow-sm space-y-4">
-            <div class="flex items-center space-x-4 border-b border-slate-100 dark:border-slate-700 pb-4">
-              <div class="w-16 h-16 rounded-2xl bg-gradient-to-tr from-emerald-500 to-cyan-600 flex items-center justify-center font-black text-2xl text-white shadow-md" id="mol-formula-badge">
-                CO₂
+          <!-- Массалық қатынас калькуляторы (m1 : m2) -->
+          <div class="lab-card space-y-3">
+            <div class="flex items-center justify-between border-b border-sky-100 dark:border-slate-700 pb-2">
+              <h3 class="font-extrabold text-xs text-sky-800 dark:text-sky-300 flex items-center gap-1.5">
+                <i class="fa-solid fa-calculator text-sky-600"></i> Массалық қатынас калькуляторы (m₁ : m₂)
+              </h3>
+              <span class="text-[10px] font-mono bg-sky-50 dark:bg-slate-800 text-sky-600 dark:text-sky-400 px-2 py-0.5 rounded border border-sky-200 dark:border-slate-700 font-semibold">Қолмен есептеу</span>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+              <div>
+                <label class="block text-[10px] font-bold text-slate-500 mb-1">1-зат (m₁, г):</label>
+                <input type="number" id="calcM1" value="12" step="0.1" oninput="runCustomCalc()" class="w-full bg-sky-50/50 dark:bg-slate-900 border border-sky-200 dark:border-slate-700 rounded-xl px-2.5 py-1.5 text-xs font-mono font-bold focus:outline-none focus:ring-1 focus:ring-sky-500">
               </div>
               <div>
-                <h3 class="text-xl font-black text-slate-900 dark:text-white" id="mol-name">Көмірқышқыл газы</h3>
-                <div class="text-xs text-emerald-600 dark:text-emerald-400 font-mono mt-0.5" id="mol-molar">Салыстырмалы молекулалық массасы Mr = 44</div>
+                <label class="block text-[10px] font-bold text-slate-500 mb-1">2-зат (m₂, г):</label>
+                <input type="number" id="calcM2" value="32" step="0.1" oninput="runCustomCalc()" class="w-full bg-sky-50/50 dark:bg-slate-900 border border-sky-200 dark:border-slate-700 rounded-xl px-2.5 py-1.5 text-xs font-mono font-bold focus:outline-none focus:ring-1 focus:ring-sky-500">
+              </div>
+              <div class="p-2 rounded-xl bg-sky-50 dark:bg-slate-900 border border-sky-100 dark:border-slate-800 text-center flex flex-col justify-center">
+                <div class="text-[9px] font-bold text-slate-400 uppercase">Қатынас:</div>
+                <div id="calcRatioRes" class="text-base font-black text-sky-600 dark:text-sky-400 font-mono">3 : 8</div>
               </div>
             </div>
-
-            <div class="space-y-2.5 font-mono text-xs">
-              <div class="p-3.5 bg-slate-50 dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800">
-                <div class="text-[10px] text-slate-400 uppercase font-sans font-semibold">1. Атом сандарының қатынасы</div>
-                <div class="text-sm font-bold text-slate-800 dark:text-slate-200 mt-0.5" id="mol-atom-ratio">n(C) : n(O) = 1 : 2</div>
-              </div>
-              <div class="p-3.5 bg-slate-50 dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800">
-                <div class="text-[10px] text-slate-400 uppercase font-sans font-semibold">2. Элементтердің массаларының қатынасы</div>
-                <div class="text-sm font-bold text-sky-600 dark:text-sky-400 mt-0.5" id="mol-mass-ratio">m(C) : m(O) = 12 : 32 = 3 : 8</div>
-              </div>
-              <div class="p-3.5 bg-slate-50 dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800">
-                <div class="text-[10px] text-slate-400 uppercase font-sans font-semibold">3. Элементтердің массалық үлестері (w)</div>
-                <div class="text-sm font-bold text-emerald-600 dark:text-emerald-400 mt-0.5" id="mol-percent-ratio">w(C) : w(O) = 27.3% : 72.7%</div>
-              </div>
-            </div>
-
-            <div class="p-4 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-500/30 rounded-2xl text-xs text-emerald-900 dark:text-emerald-200 leading-relaxed" id="mol-description"></div>
           </div>
         </div>
 
-        <div class="lg:col-span-6">
-          <div class="bg-white dark:bg-slate-800 rounded-3xl p-6 border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col items-center justify-center min-h-[380px]">
-            <h4 class="font-extrabold text-slate-800 dark:text-slate-200 mb-4 text-center text-sm">Элементтердің Массалық Үлес Диаграммасы (%)</h4>
-            <div class="w-full max-w-xs h-60 relative">
-              <canvas id="massRatioChart"></canvas>
+        <!-- Оң жақ баған: Сандық таразы дисплейі, визуалды тигель және есептеу (7 баған) -->
+        <div class="lg:col-span-7 space-y-5">
+          <div class="lab-card flex flex-col justify-between min-h-[500px] space-y-4">
+            
+            <!-- Жоғарғы статус жолағы -->
+            <div class="flex justify-between items-center border-b border-sky-100 dark:border-slate-700 pb-3">
+              <div class="flex items-center space-x-2">
+                <span id="simStatusDot" class="w-3 h-3 rounded-full bg-amber-400 animate-pulse"></span>
+                <span id="simStatusText" class="text-xs font-mono tracking-wider text-slate-700 dark:text-slate-300 uppercase font-bold">ДАЙЫН: ҚЫЗДЫРУДЫ КҮТУДЕ</span>
+              </div>
+              <span class="text-[10px] font-mono bg-sky-50 dark:bg-slate-800 border border-sky-200 dark:border-slate-700 px-2.5 py-1 rounded-full text-slate-500 dark:text-slate-400">
+                Сандық таразы №1
+              </span>
             </div>
-            <div id="chartLegend" class="mt-4 flex justify-center flex-wrap gap-4 text-xs font-semibold"></div>
+
+            <!-- Сандық Таразы Блокы (Digital LCD Scale) -->
+            <div class="bg-slate-900 dark:bg-slate-950 border-2 border-sky-400/40 rounded-2xl p-5 text-center shadow-xl max-w-sm mx-auto w-full">
+              <div class="text-[10px] uppercase font-mono text-sky-400 mb-1 tracking-widest font-bold">САНДЫҚ ТАРАЗЫ БЛОКЫ</div>
+              <div class="font-mono text-4xl sm:text-5xl font-black text-emerald-400 tracking-wider">
+                <span id="simScaleVal">9.60</span> <span class="text-2xl text-emerald-600">г</span>
+              </div>
+              <div id="simScaleSub" class="text-xs text-slate-400 mt-1 font-mono">Бастапқы реакциялық қоспа</div>
+            </div>
+
+            <!-- Визуалды реакция сауыты мен жалын анимациясы -->
+            <div class="relative py-4 flex flex-col items-center justify-center">
+              <div id="simFlameContainer" class="hidden absolute -bottom-2 z-0">
+                <div class="w-16 h-20 bg-gradient-to-t from-orange-600 via-amber-400 to-yellow-200 rounded-full blur-sm animate-pulse"></div>
+              </div>
+              <!-- Пробирка / Тигель -->
+              <div class="w-36 h-36 border-4 border-slate-400 dark:border-slate-600 border-t-0 rounded-b-3xl bg-sky-50/40 dark:bg-slate-900/60 relative overflow-hidden flex flex-col justify-end p-2 shadow-inner z-10">
+                <div id="simSubstanceContainer" class="w-full rounded-b-2xl overflow-hidden flex flex-col justify-end transition-all duration-700" style="height: 65%;">
+                  <div id="simLayer1" class="w-full bg-amber-600/80 flex items-center justify-center text-[10px] font-mono text-white font-bold transition-all duration-700" style="height: 60%;">Cu (6.4г)</div>
+                  <div id="simLayer2" class="w-full bg-yellow-400/90 flex items-center justify-center text-[10px] font-mono text-slate-900 font-bold transition-all duration-700" style="height: 40%;">S (3.2г)</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Реакция нәтижесінің карточкалары -->
+            <div class="grid grid-cols-2 gap-2.5 text-xs">
+              <div class="p-3 rounded-xl bg-sky-50 dark:bg-slate-900 border border-sky-100 dark:border-slate-800">
+                <div class="text-[10px] uppercase font-bold text-slate-400">Түзілген өнім:</div>
+                <div id="simResProduct" class="font-bold text-slate-800 dark:text-slate-100 text-sm mt-0.5">—</div>
+              </div>
+              <div class="p-3 rounded-xl bg-sky-50 dark:bg-slate-900 border border-sky-100 dark:border-slate-800">
+                <div class="text-[10px] uppercase font-bold text-slate-400">Артық қалған зат:</div>
+                <div id="simResExcess" class="font-bold text-slate-800 dark:text-slate-100 text-sm mt-0.5">—</div>
+              </div>
+            </div>
+
+            <!-- Зат массасының сақталу заңы және түсініктеме -->
+            <div id="simExplanationBox" class="p-3.5 rounded-xl bg-sky-50 dark:bg-slate-900 border border-sky-200 dark:border-slate-700 text-xs space-y-1">
+              <div class="font-bold text-sky-800 dark:text-sky-300 flex items-center gap-1.5">
+                <i class="fa-solid fa-scale-balanced text-sky-600"></i> Зат массасының сақталу заңы:
+              </div>
+              <div id="simConservationText" class="text-slate-700 dark:text-slate-200 font-mono font-bold">
+                m(бастапқы) = 9.60 г = m(өнім) 9.60 г
+              </div>
+              <div id="simStepText" class="text-[11px] text-slate-500 dark:text-slate-400">
+                Стехиометриялық қатынас: m(Cu) : m(S) = 64 : 32 = 2 : 1
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ==================== 3-ҚОЙЫНДЫ: ВИРТУАЛДЫ ЗЕРТХАНА (Himiya_virtual_lab) ==================== -->
+    <section id="view-lab" class="space-y-6 hidden">
+      <!-- Тәжірибе таңдау түймелері -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-2.5" id="vlabTabs">
+        <!-- JS арқылы рендеринг -->
+      </div>
+
+      <div class="lab-card">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <!-- Сол жақ: Тәжірибе аймағы және пробирка/колба -->
+          <div class="lg:col-span-6 space-y-4">
+            <div>
+              <h2 id="vlabTitle" class="text-lg font-bold text-slate-900 dark:text-white"></h2>
+              <p id="vlabGoal" class="text-xs text-slate-500 dark:text-slate-400 mt-0.5"></p>
+            </div>
+
+            <!-- Реагенттер (Materials pills) -->
+            <div class="flex flex-wrap gap-2 py-1" id="vlabMaterials"></div>
+
+            <!-- Интерактивті колба қорабы -->
+            <div class="lab-box" id="vlabBox">
+              <div id="vlabFlame" class="flame-element">🔥</div>
+              <div class="beaker">
+                <div class="liquid" id="vlabLiquid"></div>
+                <span class="bubble"></span>
+                <span class="bubble"></span>
+                <span class="bubble"></span>
+              </div>
+              <div id="vlabVisualText" class="text-center font-bold text-xs sm:text-sm text-slate-700 dark:text-slate-200 mt-2">
+                Тәжірибені бастау үшін батырманы басыңыз
+              </div>
+            </div>
+
+            <!-- Басқару түймелері -->
+            <div class="flex gap-2.5 pt-1">
+              <button onclick="runVLabReaction()" id="vlabRunBtn" class="flex-1 py-3 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-md shadow-blue-600/20 transition">
+                <i class="fa-solid fa-play"></i> Реакцияны іске қосу
+              </button>
+              <button onclick="resetVLab()" class="py-3 px-4 rounded-xl bg-sky-100 hover:bg-sky-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-sky-800 dark:text-sky-300 font-bold text-xs transition">
+                <i class="fa-solid fa-rotate-left"></i> Қайта бастау
+              </button>
+            </div>
+          </div>
+
+          <!-- Оң жақ: Бақылау нәтижесі, теңдеу және Зерттеу сұрағы -->
+          <div class="lg:col-span-6 space-y-4">
+            <h3 class="font-extrabold text-sm text-slate-900 dark:text-white flex items-center gap-2">
+              <i class="fa-solid fa-magnifying-glass text-sky-600"></i> Бақылау нәтижесі
+            </h3>
+
+            <div class="grid grid-cols-2 gap-2.5 text-xs">
+              <div class="p-3 rounded-xl bg-sky-50 dark:bg-slate-900 border border-sky-100 dark:border-slate-800">
+                <b class="text-slate-400 block text-[10px] uppercase">Бастапқы заттар:</b>
+                <span id="vlabStartCount" class="font-bold text-slate-800 dark:text-slate-200">—</span>
+              </div>
+              <div class="p-3 rounded-xl bg-sky-50 dark:bg-slate-900 border border-sky-100 dark:border-slate-800">
+                <b class="text-slate-400 block text-[10px] uppercase">Түзілген заттар:</b>
+                <span id="vlabProductCount" class="font-bold text-slate-800 dark:text-slate-200">—</span>
+              </div>
+              <div class="p-3 rounded-xl bg-sky-50 dark:bg-slate-900 border border-sky-100 dark:border-slate-800">
+                <b class="text-slate-400 block text-[10px] uppercase">Құрамы:</b>
+                <span id="vlabComposition" class="font-bold text-slate-800 dark:text-slate-200">—</span>
+              </div>
+              <div class="p-3 rounded-xl bg-sky-50 dark:bg-slate-900 border border-sky-100 dark:border-slate-800">
+                <b class="text-slate-400 block text-[10px] uppercase">Бақылау белгісі:</b>
+                <span id="vlabObservation" class="font-bold text-slate-800 dark:text-slate-200">—</span>
+              </div>
+            </div>
+
+            <!-- Реакция теңдеуі -->
+            <div class="eq-box" id="vlabEquation">
+              Реакция теңдеуі осында шығады
+            </div>
+
+            <!-- Зерттеу сұрағы -->
+            <div class="question-box space-y-3">
+              <div class="font-bold text-xs flex items-center gap-1.5">
+                <i class="fa-solid fa-circle-question"></i> Зерттеу сұрағы:
+              </div>
+              <p class="text-xs">Бұл реакцияны бастапқы және түзілген заттардың саны мен құрамына қарай қай типке жатқызамыз?</p>
+              
+              <div class="grid grid-cols-2 gap-2" id="vlabAnswers"></div>
+              <div class="font-bold text-xs min-h-[20px]" id="vlabResult"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Орындалу барысы -->
+        <div class="progress-bar-wrap mt-4">
+          <div class="h-full bg-emerald-500 rounded-full transition-all duration-300" id="vlabProgressBar" style="width: 0%;"></div>
+        </div>
+        <div class="text-xs text-slate-400 font-mono" id="vlabStatusText">0/4 тәжірибе орындалды</div>
+      </div>
+
+      <!-- Зерттеу парағы кестесі (Himiya_virtual_lab) -->
+      <div class="lab-card">
+        <h3 class="font-extrabold text-base text-slate-900 dark:text-white mb-2 flex items-center gap-2">
+          <i class="fa-solid fa-table-list text-sky-600"></i> Зерттеу парағы
+        </h3>
+        <div class="overflow-x-auto">
+          <table class="sheet-table">
+            <thead>
+              <tr>
+                <th>№</th>
+                <th>Реакция теңдеуі</th>
+                <th>Бастапқы зат саны</th>
+                <th>Түзілген зат саны</th>
+                <th>Реакция типі</th>
+              </tr>
+            </thead>
+            <tbody id="vlabSheetBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== 3-ҚОЙЫНДЫ: ТИПТЕРДІ СҰРЫПТАУ ==================== -->
+    <section id="view-sorting" class="space-y-6 hidden">
+      <div class="lab-card space-y-5">
+        <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b border-sky-100 dark:border-slate-700/80 pb-4">
+          <div>
+            <h2 class="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <i class="fa-solid fa-boxes-stacked text-amber-500"></i> Реакция типтерін сәйкестендіру
+            </h2>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              Әр реакция теңдеуінің астындағы батырманы басып, тиісті реакция типін таңдаңыз.
+            </p>
+          </div>
+          <div class="flex items-center gap-3">
+            <div class="text-xs font-semibold px-3 py-1.5 bg-sky-50 dark:bg-slate-900 rounded-xl border border-sky-100 dark:border-slate-700">
+              Ұпай: <span id="sortScore" class="text-sky-600 dark:text-sky-400 text-sm font-bold">0</span> / 6
+            </div>
+            <button onclick="resetSortingGame()" class="px-3 py-1.5 text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-600 dark:text-slate-300 font-bold hover:bg-sky-50 transition">
+              <i class="fa-solid fa-rotate-left"></i> Қайта бастау
+            </button>
+          </div>
+        </div>
+
+        <!-- Сұрыпталмаған теңдеулер пулы -->
+        <div>
+          <div class="text-xs font-bold uppercase text-slate-400 tracking-wider mb-2.5">Сұрыпталмаған реакция теңдеулері:</div>
+          <div id="equationPool" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 p-4 bg-sky-50/50 dark:bg-slate-900/60 rounded-2xl border border-sky-100 dark:border-slate-800 min-h-[70px]">
+            <!-- JS арқылы рендеринг -->
+          </div>
+        </div>
+
+        <!-- 4 Себет (Target Buckets) -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 pt-2">
+          <!-- 1: Қосылу -->
+          <div class="p-4 rounded-2xl border-t-4 border-t-sky-500 bg-sky-50/30 dark:bg-slate-900/40 border border-sky-100 dark:border-slate-800 min-h-[190px]">
+            <div class="flex items-center justify-between mb-2">
+              <h3 class="font-bold text-sky-700 dark:text-sky-300 text-xs uppercase">ҚОСЫЛУ</h3>
+              <span class="text-[10px] font-mono px-2 py-0.5 bg-sky-100 dark:bg-sky-950 text-sky-700 dark:text-sky-300 rounded">A+B→C</span>
+            </div>
+            <div id="bucket-combination" class="space-y-1.5 mt-2.5"></div>
+          </div>
+
+          <!-- 2: Айырылу -->
+          <div class="p-4 rounded-2xl border-t-4 border-t-emerald-500 bg-emerald-50/30 dark:bg-slate-900/40 border border-emerald-100 dark:border-slate-800 min-h-[190px]">
+            <div class="flex items-center justify-between mb-2">
+              <h3 class="font-bold text-emerald-700 dark:text-emerald-300 text-xs uppercase">АЙЫРЫЛУ</h3>
+              <span class="text-[10px] font-mono px-2 py-0.5 bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 rounded">AB→A+B</span>
+            </div>
+            <div id="bucket-decomposition" class="space-y-1.5 mt-2.5"></div>
+          </div>
+
+          <!-- 3: Орынбасу -->
+          <div class="p-4 rounded-2xl border-t-4 border-t-amber-500 bg-amber-50/30 dark:bg-slate-900/40 border border-amber-100 dark:border-slate-800 min-h-[190px]">
+            <div class="flex items-center justify-between mb-2">
+              <h3 class="font-bold text-amber-700 dark:text-amber-300 text-xs uppercase">ОРЫНБАСУ</h3>
+              <span class="text-[10px] font-mono px-2 py-0.5 bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300 rounded">A+BC→AC+B</span>
+            </div>
+            <div id="bucket-replacement" class="space-y-1.5 mt-2.5"></div>
+          </div>
+
+          <!-- 4: Алмасу -->
+          <div class="p-4 rounded-2xl border-t-4 border-t-purple-500 bg-purple-50/30 dark:bg-slate-900/40 border border-purple-100 dark:border-slate-800 min-h-[190px]">
+            <div class="flex items-center justify-between mb-2">
+              <h3 class="font-bold text-purple-700 dark:text-purple-300 text-xs uppercase">АЛМАСУ</h3>
+              <span class="text-[10px] font-mono px-2 py-0.5 bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300 rounded">AB+CD→AD+CB</span>
+            </div>
+            <div id="bucket-exchange" class="space-y-1.5 mt-2.5"></div>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- ==================== 4. МҰҒАЛІМ ПАНЕЛІ (REALTIME) ==================== -->
-    <section id="view-teacher" class="space-y-6 hidden">
-      <!-- Мұғалім панелі баннері -->
-      <div class="bg-gradient-to-r from-slate-800 via-indigo-900 to-blue-950 rounded-3xl p-6 text-white shadow-lg flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <span class="inline-block px-3 py-1 bg-white/10 border border-white/20 rounded-full text-xs font-semibold text-indigo-200 mb-1">
-            Оқытушының Мониторинг Панелі
-          </span>
-          <h2 class="text-2xl sm:text-3xl font-black">Сыныптың үлгерімі мен тапсырмалар журналы</h2>
-          <p class="text-indigo-200 text-xs sm:text-sm mt-0.5 max-w-2xl">
-            Оқушылардың барлық шешімдері мен жауаптары осы бөлімде тексеріледі және бағаланады.
-          </p>
+    <!-- ==================== 4-ҚОЙЫНДЫ: ТЕҢЕСТІРУ КОНСТРУКТОРЫ ==================== -->
+    <section id="view-balance" class="space-y-6 hidden">
+      <div class="lab-card space-y-6">
+        <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b border-sky-100 dark:border-slate-700/80 pb-4">
+          <div>
+            <h2 class="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <i class="fa-solid fa-scale-balanced text-sky-600"></i> Реакция теңдеулерін теңестіру тренажеры
+            </h2>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              Коэффициенттерді таңдап, атомдар санын теңестіріңіз және реакция типін анықтаңыз.
+            </p>
+          </div>
+          <div class="bg-sky-50 dark:bg-slate-900 px-4 py-2 rounded-xl border border-sky-100 dark:border-slate-800 text-right">
+            <span class="text-[10px] uppercase font-bold text-sky-600 block">Теңдеу үлгісі:</span>
+            <span class="text-xs font-mono font-bold text-slate-700 dark:text-slate-300">FeCl₃ + NaOH → NaCl + Fe(OH)₃↓</span>
+          </div>
         </div>
-        <div class="flex gap-2">
-          <button onclick="window.print()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold py-2.5 px-4 rounded-xl text-xs shadow-md transition flex items-center gap-2">
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <div class="lg:col-span-7 space-y-5">
+            <!-- Коэффициенттерді қою -->
+            <div class="p-5 rounded-2xl bg-sky-50/50 dark:bg-slate-900/60 border border-sky-100 dark:border-slate-800 space-y-3">
+              <div class="text-xs font-bold text-slate-500 uppercase tracking-wider">1-Қадам: Коэффициенттерді таңдаңыз</div>
+              
+              <div class="flex flex-wrap items-center justify-center gap-2 p-4 bg-white dark:bg-slate-950 rounded-xl border border-sky-100 dark:border-slate-800 text-sm sm:text-base font-mono">
+                <input type="number" id="coeff-a" min="1" max="10" value="1" class="w-12 h-10 text-center bg-sky-50 dark:bg-slate-900 border border-sky-300 dark:border-sky-600 rounded-lg text-sky-700 dark:text-sky-300 font-bold focus:outline-none">
+                <span>FeCl₃</span>
+                <span class="text-slate-400 font-bold">+</span>
+                <input type="number" id="coeff-b" min="1" max="10" value="1" class="w-12 h-10 text-center bg-sky-50 dark:bg-slate-900 border border-sky-300 dark:border-sky-600 rounded-lg text-sky-700 dark:text-sky-300 font-bold focus:outline-none">
+                <span>NaOH</span>
+                <span class="text-sky-600 font-bold">→</span>
+                <input type="number" id="coeff-c" min="1" max="10" value="1" class="w-12 h-10 text-center bg-sky-50 dark:bg-slate-900 border border-sky-300 dark:border-sky-600 rounded-lg text-sky-700 dark:text-sky-300 font-bold focus:outline-none">
+                <span>NaCl</span>
+                <span class="text-slate-400 font-bold">+</span>
+                <input type="number" id="coeff-d" min="1" max="10" value="1" class="w-12 h-10 text-center bg-sky-50 dark:bg-slate-900 border border-sky-300 dark:border-sky-600 rounded-lg text-sky-700 dark:text-sky-300 font-bold focus:outline-none">
+                <span>Fe(OH)₃↓</span>
+              </div>
+
+              <!-- Атомдар теңгерімі -->
+              <div class="grid grid-cols-2 gap-3 text-xs pt-1">
+                <div class="bg-white dark:bg-slate-950 p-3 rounded-xl border border-sky-100 dark:border-slate-800 space-y-1">
+                  <div class="font-bold text-slate-400 border-b border-sky-50 dark:border-slate-800 pb-1">Бастапқы атомдар:</div>
+                  <div class="flex justify-between"><span>Fe:</span><span id="left-fe" class="font-mono text-sky-600">1</span></div>
+                  <div class="flex justify-between"><span>Cl:</span><span id="left-cl" class="font-mono text-sky-600">3</span></div>
+                  <div class="flex justify-between"><span>Na:</span><span id="left-na" class="font-mono text-sky-600">1</span></div>
+                  <div class="flex justify-between"><span>O:</span><span id="left-o" class="font-mono text-sky-600">1</span></div>
+                  <div class="flex justify-between"><span>H:</span><span id="left-h" class="font-mono text-sky-600">1</span></div>
+                </div>
+                <div class="bg-white dark:bg-slate-950 p-3 rounded-xl border border-sky-100 dark:border-slate-800 space-y-1">
+                  <div class="font-bold text-slate-400 border-b border-sky-50 dark:border-slate-800 pb-1">Түзілген атомдар:</div>
+                  <div class="flex justify-between"><span>Fe:</span><span id="right-fe" class="font-mono text-amber-600">1</span></div>
+                  <div class="flex justify-between"><span>Cl:</span><span id="right-cl" class="font-mono text-amber-600">1</span></div>
+                  <div class="flex justify-between"><span>Na:</span><span id="right-na" class="font-mono text-amber-600">1</span></div>
+                  <div class="flex justify-between"><span>O:</span><span id="right-o" class="font-mono text-amber-600">3</span></div>
+                  <div class="flex justify-between"><span>H:</span><span id="right-h" class="font-mono text-amber-600">3</span></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Реакция типі және коэффициент қосындысы -->
+            <div class="p-5 rounded-2xl bg-sky-50/50 dark:bg-slate-900/60 border border-sky-100 dark:border-slate-800 space-y-3">
+              <div class="text-xs font-bold text-slate-500 uppercase tracking-wider">2-Қадам: Реакция типін және коэффициенттер қосындысын таңдаңыз</div>
+              
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                <div>
+                  <label class="block font-medium text-slate-600 dark:text-slate-300 mb-1">Реакция типі:</label>
+                  <select id="user-rxn-type" class="w-full bg-white dark:bg-slate-900 border border-sky-200 dark:border-slate-700 rounded-xl p-2.5 font-bold">
+                    <option value="">-- Таңдаңыз --</option>
+                    <option value="combination">Қосылу реакциясы</option>
+                    <option value="decomposition">Айырылу реакциясы</option>
+                    <option value="replacement">Орынбасу реакциясы</option>
+                    <option value="exchange">Алмасу реакциясы</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="block font-medium text-slate-600 dark:text-slate-300 mb-1">Коэффициенттер қосындысы:</label>
+                  <select id="user-coeff-sum" class="w-full bg-white dark:bg-slate-900 border border-sky-200 dark:border-slate-700 rounded-xl p-2.5 font-bold">
+                    <option value="">-- Қосынды --</option>
+                    <option value="5">A. 5</option>
+                    <option value="8">B. 8</option>
+                    <option value="9">C. 9</option>
+                    <option value="4">D. 4</option>
+                  </select>
+                </div>
+              </div>
+
+              <button onclick="checkBalancingTask()" class="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-md transition flex items-center justify-center gap-2">
+                <i class="fa-solid fa-circle-check"></i> Жауапты тексеру
+              </button>
+            </div>
+          </div>
+
+          <!-- Нәтиже мен анықтама -->
+          <div class="lg:col-span-5">
+            <div id="balancing-feedback" class="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-sky-100 dark:border-slate-800 min-h-[300px] flex flex-col justify-between">
+              <div>
+                <h3 class="text-sm font-bold text-slate-800 dark:text-slate-200 mb-2 flex items-center gap-2">
+                  <i class="fa-solid fa-circle-info text-sky-600"></i> Тексеру қорытындысы
+                </h3>
+                <p class="text-xs text-slate-500 leading-relaxed">
+                  Коэффициенттерді өзгертіп, екі жақтағы элемент атомдарының тең екенін қадағалаңыз. Барлық коэффициенттердің қосындысын анықтап, «Жауапты тексеру» батырмасын басыңыз.
+                </p>
+              </div>
+
+              <div class="mt-4 p-4 bg-sky-50 dark:bg-slate-950 rounded-xl border border-sky-100 dark:border-slate-800 space-y-1.5 text-xs">
+                <div class="font-bold text-sky-700 dark:text-sky-300">Анықтама:</div>
+                <div class="text-slate-600 dark:text-slate-300">
+                  Реакцияға екі күрделі зат қатысып (FeCl₃ және NaOH), олардың құрамбөліктері орын алмастырса ($AB + CD \rightarrow AD + CB$), бұл — <b>Алмасу реакциясы</b>.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== 5-ҚОЙЫНДЫ: МҰҒАЛІМ ПАНЕЛІ (ҚҰПИЯСӨЗБЕН) ==================== -->
+    <section id="view-teacher" class="space-y-6 hidden">
+      <div class="hero-banner flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+          <span class="inline-block px-3 py-1 bg-white/20 border border-white/30 rounded-full text-xs font-semibold text-white mb-1">
+            Оқытушы кабинеті
+          </span>
+          <h2 class="text-2xl font-black">Сыныптың үлгерімі мен тапсырмалар журналы</h2>
+          <p class="text-sky-100 text-xs mt-0.5">Оқушылардың орындаған тапсырмалары мен жауаптарын тексеріп, баға қойыңыз.</p>
+        </div>
+        <div class="flex flex-wrap gap-2">
+          <button onclick="window.print()" class="bg-white hover:bg-sky-50 text-blue-700 font-extrabold py-2.5 px-4 rounded-xl text-xs shadow-md transition flex items-center gap-2">
             <i class="fa-solid fa-print"></i> Есепті басып шығару (PDF)
           </button>
-          <button onclick="openNewTaskModal()" class="bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold py-2.5 px-4 rounded-xl text-xs shadow-md transition flex items-center gap-2">
+          <button onclick="openNewParagraphModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold py-2.5 px-4 rounded-xl text-xs shadow-md transition flex items-center gap-2">
+            <i class="fa-solid fa-book-bookmark"></i> Жаңа параграф қосу
+          </button>
+          <button onclick="openNewTaskModal()" class="bg-blue-800 hover:bg-blue-900 text-white font-extrabold py-2.5 px-4 rounded-xl text-xs shadow-md transition flex items-center gap-2">
             <i class="fa-solid fa-plus"></i> Жаңа тапсырма қосу
           </button>
         </div>
       </div>
 
-      <!-- Статистикалық карточкалар -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-200 dark:border-slate-700 shadow-sm flex items-center space-x-4">
-          <div class="w-12 h-12 rounded-xl bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 flex items-center justify-center text-xl font-bold">
+      <!-- Статистика карточкалары -->
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="lab-card flex items-center space-x-3.5">
+          <div class="w-12 h-12 rounded-xl bg-blue-100 dark:bg-blue-950 text-blue-600 dark:text-blue-300 flex items-center justify-center text-xl font-bold">
             <i class="fa-solid fa-users"></i>
           </div>
           <div>
-            <div class="text-xs text-slate-400 font-semibold">Тіркелген оқушылар</div>
-            <div class="text-2xl font-black text-slate-900 dark:text-white font-mono" id="statTotalStudents">0</div>
+            <div class="text-xs text-slate-400 font-semibold">Оқушылар саны</div>
+            <div class="text-2xl font-black text-slate-800 dark:text-white font-mono" id="statTotalStudents">0</div>
           </div>
         </div>
 
-        <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-200 dark:border-slate-700 shadow-sm flex items-center space-x-4">
-          <div class="w-12 h-12 rounded-xl bg-purple-100 dark:bg-purple-500/20 text-purple-600 dark:text-purple-400 flex items-center justify-center text-xl font-bold">
+        <div class="lab-card flex items-center space-x-3.5">
+          <div class="w-12 h-12 rounded-xl bg-sky-100 dark:bg-sky-950 text-sky-600 dark:text-sky-300 flex items-center justify-center text-xl font-bold">
             <i class="fa-solid fa-clipboard-question"></i>
           </div>
           <div>
             <div class="text-xs text-slate-400 font-semibold">Барлық тапсырмалар</div>
-            <div class="text-2xl font-black text-slate-900 dark:text-white font-mono" id="statTotalTasks">0</div>
+            <div class="text-2xl font-black text-slate-800 dark:text-white font-mono" id="statTotalTasks">0</div>
           </div>
         </div>
 
-        <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 border border-amber-300 dark:border-amber-500/40 shadow-sm flex items-center space-x-4">
-          <div class="w-12 h-12 rounded-xl bg-amber-100 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center text-xl font-bold">
+        <div class="lab-card flex items-center space-x-3.5 border-amber-300 dark:border-amber-600">
+          <div class="w-12 h-12 rounded-xl bg-amber-100 dark:bg-amber-950 text-amber-600 dark:text-amber-300 flex items-center justify-center text-xl font-bold">
             <i class="fa-solid fa-hourglass-half"></i>
           </div>
           <div>
@@ -516,57 +1065,49 @@
           </div>
         </div>
 
-        <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-200 dark:border-slate-700 shadow-sm flex items-center space-x-4">
-          <div class="w-12 h-12 rounded-xl bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-xl font-bold">
+        <div class="lab-card flex items-center space-x-3.5">
+          <div class="w-12 h-12 rounded-xl bg-emerald-100 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-300 flex items-center justify-center text-xl font-bold">
             <i class="fa-solid fa-circle-check"></i>
           </div>
           <div>
-            <div class="text-xs text-slate-400 font-semibold">Тексерілген және зачтено</div>
+            <div class="text-xs text-slate-400 font-semibold">Тексерілген жұмыстар</div>
             <div class="text-2xl font-black text-emerald-600 dark:text-emerald-400 font-mono" id="statApprovedReviews">0</div>
           </div>
         </div>
       </div>
 
-      <!-- Тікелей сынып матрицасы -->
-      <div class="bg-white dark:bg-slate-800 rounded-3xl p-6 border border-slate-200 dark:border-slate-700 shadow-sm space-y-4">
-        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-slate-100 dark:border-slate-700 pb-4">
-          <div>
-            <h3 class="font-extrabold text-base text-slate-900 dark:text-white flex items-center gap-2">
-              <i class="fa-solid fa-table-cells text-indigo-500"></i> Сыныптың үлгерім матрицасы
-            </h3>
-            <p class="text-xs text-slate-400 mt-0.5">Оқушының жауабын бірден ашып, баға қою үшін ұяшықты басыңыз.</p>
-          </div>
-          
+      <!-- Сынып үлгерім матрицасы -->
+      <div class="lab-card space-y-4">
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-sky-100 dark:border-slate-700/80 pb-3">
+          <h3 class="font-extrabold text-base text-slate-800 dark:text-white flex items-center gap-2">
+            <i class="fa-solid fa-table-cells text-sky-600"></i> Сыныптың үлгерім матрицасы
+          </h3>
           <div class="flex items-center gap-3 text-xs">
-            <span class="flex items-center gap-1.5 text-slate-500"><span class="w-2.5 h-2.5 rounded-full bg-slate-300 dark:bg-slate-600"></span> Басталмады</span>
-            <span class="flex items-center gap-1.5 text-amber-600 font-semibold"><span class="w-2.5 h-2.5 rounded-full bg-amber-500 animate-ping"></span> Тексерілуде</span>
-            <span class="flex items-center gap-1.5 text-emerald-600 font-semibold"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> Зачтено</span>
-            <span class="flex items-center gap-1.5 text-rose-600 font-semibold"><span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span> Доработка</span>
+            <span class="flex items-center gap-1.5 text-slate-400"><span class="w-2.5 h-2.5 rounded-full bg-slate-300"></span> Басталмады</span>
+            <span class="flex items-center gap-1.5 text-amber-600 font-semibold"><span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span> Тексерілуде</span>
+            <span class="flex items-center gap-1.5 text-emerald-600 font-semibold"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> Қабылданды</span>
+            <span class="flex items-center gap-1.5 text-rose-600 font-semibold"><span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span> Өңдеуге</span>
           </div>
         </div>
 
         <div class="overflow-x-auto">
           <table class="w-full text-left text-xs" id="teacherMatrixTable">
             <thead>
-              <tr class="border-b border-slate-200 dark:border-slate-700 text-slate-400 font-bold uppercase" id="teacherMatrixHeader">
+              <tr class="border-b border-sky-100 dark:border-slate-700 text-slate-400 font-bold uppercase" id="teacherMatrixHeader">
                 <th class="py-3 px-4">Оқушы</th>
               </tr>
             </thead>
-            <tbody id="teacherMatrixBody" class="divide-y divide-slate-100 dark:divide-slate-700/60">
-              <!-- Оқушылар жолдары -->
-            </tbody>
+            <tbody id="teacherMatrixBody" class="divide-y divide-sky-50 dark:divide-slate-800"></tbody>
           </table>
         </div>
       </div>
 
       <!-- Тексеру кезегі -->
-      <div class="bg-white dark:bg-slate-800 rounded-3xl p-6 border border-slate-200 dark:border-slate-700 shadow-sm space-y-4">
-        <h3 class="font-extrabold text-base text-slate-900 dark:text-white flex items-center gap-2">
-          <i class="fa-solid fa-inbox text-amber-500"></i> Оқушылардың тексеруге өткізген жауаптары
+      <div class="lab-card space-y-4">
+        <h3 class="font-extrabold text-base text-slate-800 dark:text-white flex items-center gap-2">
+          <i class="fa-solid fa-inbox text-sky-600"></i> Оқушылардың өткізген жауаптары
         </h3>
-        <div id="teacherSubmissionsList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          <!-- Карточкалар -->
-        </div>
+        <div id="teacherSubmissionsList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
       </div>
     </section>
 
@@ -574,17 +1115,15 @@
 
   <!-- ======================== МОДАЛЬДІ ТЕРЕЗЕЛЕР ======================== -->
 
-  <!-- 1. Жүйеге кіру / Оқушыны тіркеу терезесі -->
+  <!-- 1. Оқушы кіру терезесі -->
   <div id="loginModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-    <div class="bg-white dark:bg-slate-800 rounded-3xl max-w-md w-full p-6 sm:p-8 border border-slate-200 dark:border-slate-700 shadow-2xl space-y-5">
+    <div class="lab-card max-w-md w-full p-6 sm:p-8 shadow-2xl space-y-5">
       <div class="text-center space-y-2">
-        <div class="w-14 h-14 mx-auto rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white text-2xl shadow-lg">
+        <div class="w-14 h-14 mx-auto rounded-2xl bg-gradient-to-br from-blue-600 to-sky-600 flex items-center justify-center text-white text-2xl shadow-lg">
           <i class="fa-solid fa-user-graduate"></i>
         </div>
         <h3 class="text-xl font-black text-slate-900 dark:text-white">ChemLab зертханасына қош келдіңіз!</h3>
-        <p class="text-xs text-slate-500 dark:text-slate-400">
-          Сабақты бастау және тапсырмаларды орындау үшін аты-жөніңізді жазыңыз.
-        </p>
+        <p class="text-xs text-slate-500">Сабақты бастау үшін аты-жөніңізді жазыңыз.</p>
       </div>
 
       <form id="loginForm" onsubmit="handleUserLogin(event)" class="space-y-4">
@@ -592,161 +1131,214 @@
           <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1">
             Аты-жөніңіз:
           </label>
-          <input type="text" id="loginNameInput" required placeholder="Мысалы: Айдос Серіков немесе Динара" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-4 py-3 text-sm text-slate-900 dark:text-white font-medium focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+          <input type="text" id="loginNameInput" required placeholder="Мысалы: Айдос Серіков немесе Динара" class="w-full bg-sky-50/50 dark:bg-slate-900 border border-sky-100 dark:border-slate-700 rounded-2xl px-4 py-3 text-sm focus:ring-2 focus:ring-sky-500 focus:outline-none">
         </div>
 
         <div>
           <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1">
             Рөліңізді таңдаңыз:
           </label>
-          <select id="loginRoleSelect" onchange="toggleTeacherPasswordField()" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-4 py-3 text-sm text-slate-900 dark:text-white font-bold focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+          <select id="loginRoleSelect" onchange="toggleTeacherPasswordField()" class="w-full bg-sky-50/50 dark:bg-slate-900 border border-sky-100 dark:border-slate-700 rounded-2xl px-4 py-3 text-sm font-bold focus:ring-2 focus:ring-sky-500 focus:outline-none">
             <option value="student">Оқушы</option>
             <option value="teacher">Мұғалім (Кіру кодымен)</option>
           </select>
         </div>
 
-        <!-- Мұғалім үшін құпиясөз өрісі -->
         <div id="teacherPasswordBlock" class="hidden space-y-1">
-          <label class="block text-xs font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 mb-1">
-            <i class="fa-solid fa-lock mr-1"></i> Мұғалім құпиясөзі (Пароль):
+          <label class="block text-xs font-bold uppercase tracking-wider text-sky-700 dark:text-sky-400 mb-1">
+            <i class="fa-solid fa-lock mr-1"></i> Мұғалім құпиясөзі:
           </label>
-          <input type="password" id="loginTeacherPassword" placeholder="Құпиясөзді енгізіңіз..." class="w-full bg-slate-50 dark:bg-slate-900 border border-indigo-300 dark:border-indigo-600 rounded-2xl px-4 py-3 text-sm text-slate-900 dark:text-white font-medium focus:ring-2 focus:ring-indigo-500 focus:outline-none">
-          <p class="text-[10px] text-slate-400">Мұғалім кабинетіне арналған</p>
+          <input type="password" id="loginTeacherPassword" placeholder="Құпиясөзді енгізіңіз..." class="w-full bg-sky-50/50 dark:bg-slate-900 border border-sky-300 dark:border-sky-600 rounded-2xl px-4 py-3 text-sm focus:ring-2 focus:ring-sky-500 focus:outline-none">
+          <p class="text-[10px] text-slate-400">Мұғалім кабинетіне арналған код</p>
         </div>
 
-        <button type="submit" class="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black py-3.5 rounded-2xl text-sm shadow-md transition">
+        <button type="submit" class="w-full bg-gradient-to-r from-blue-600 to-sky-600 hover:from-blue-700 hover:to-sky-700 text-white font-black py-3.5 rounded-2xl text-sm shadow-md transition">
           Кіру және сабақты бастау
         </button>
       </form>
     </div>
   </div>
 
-  <!-- 2. Мұғалімнің құпиясөзін сұрау терезесі (Оқушы Мұғалім панелін басқан кезде) -->
+  <!-- 2. Мұғалім құпиясөзін тексеру терезесі -->
   <div id="teacherAuthModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-    <div class="bg-white dark:bg-slate-800 rounded-3xl max-w-sm w-full p-6 border border-slate-200 dark:border-slate-700 shadow-2xl space-y-4">
-      <div class="flex justify-between items-center border-b border-slate-100 dark:border-slate-700 pb-3">
+    <div class="lab-card max-w-sm w-full p-6 shadow-2xl space-y-4">
+      <div class="flex justify-between items-center border-b border-sky-100 dark:border-slate-700 pb-3">
         <h4 class="text-base font-black text-slate-900 dark:text-white flex items-center gap-2">
-          <i class="fa-solid fa-shield-halved text-indigo-500"></i> Мұғалімді растау
+          <i class="fa-solid fa-shield-halved text-sky-600"></i> Мұғалімді растау
         </h4>
-        <button onclick="closeTeacherAuthModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-white text-lg">
+        <button onclick="closeTeacherAuthModal()" class="text-slate-400 hover:text-slate-600 text-lg">
           <i class="fa-solid fa-xmark"></i>
         </button>
       </div>
 
-      <p class="text-xs text-slate-500 dark:text-slate-400">
+      <p class="text-xs text-slate-500">
         Мұғалім кабинетіне өту үшін құпиясөзді енгізіңіз:
       </p>
 
       <form onsubmit="handleTeacherModalAuth(event)" class="space-y-3">
-        <input type="password" id="modalTeacherPasswordInput" required placeholder="Мұғалім құпиясөзі..." class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+        <input type="password" id="modalTeacherPasswordInput" required placeholder="Мұғалім құпиясөзі..." class="w-full bg-sky-50/50 dark:bg-slate-900 border border-sky-100 dark:border-slate-700 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-sky-500 focus:outline-none">
         
         <div id="teacherAuthErrorMsg" class="text-xs text-rose-500 font-semibold hidden">
           Құпиясөз дұрыс емес! Қайта көріңіз.
         </div>
 
-        <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2.5 rounded-xl text-xs transition">
+        <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-xl text-xs transition">
           Растау және Мұғалім панелін ашу
         </button>
       </form>
     </div>
   </div>
 
-  <!-- 3. Мұғалімнің жауапты тексеру терезесі -->
+  <!-- 3. Мұғалім тексеру терезесі -->
   <div id="reviewModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-    <div class="bg-white dark:bg-slate-800 rounded-3xl max-w-lg w-full p-6 border border-slate-200 dark:border-slate-700 shadow-2xl space-y-4">
-      <div class="flex justify-between items-center border-b border-slate-100 dark:border-slate-700 pb-3">
+    <div class="lab-card max-w-lg w-full p-6 shadow-2xl space-y-4">
+      <div class="flex justify-between items-center border-b border-sky-100 dark:border-slate-700 pb-3">
         <div>
           <h4 class="text-base font-black text-slate-900 dark:text-white" id="mReviewStudentName">Шешімді тексеру</h4>
           <span class="text-xs text-slate-400" id="mReviewTaskTitle"></span>
         </div>
-        <button onclick="closeReviewModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-white text-lg">
+        <button onclick="closeReviewModal()" class="text-slate-400 hover:text-slate-600 text-lg">
           <i class="fa-solid fa-xmark"></i>
         </button>
       </div>
 
-      <!-- Оқушының жауап мәтіні -->
       <div>
         <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Оқушының жауабы:</label>
-        <pre id="mReviewAnswerText" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 text-xs font-mono text-emerald-700 dark:text-emerald-400 whitespace-pre-wrap max-h-40 overflow-y-auto"></pre>
+        <pre id="mReviewAnswerText" class="w-full bg-sky-50 dark:bg-slate-900 border border-sky-100 dark:border-slate-700 rounded-2xl p-4 text-xs font-mono text-sky-800 dark:text-sky-300 whitespace-pre-wrap max-h-40 overflow-y-auto"></pre>
       </div>
 
-      <!-- Жылдам дайын пікірлер -->
       <div>
         <label class="block text-[11px] font-bold text-slate-400 mb-1">Дайын пікір шаблондары:</label>
         <div class="flex flex-wrap gap-1.5 text-xs">
-          <button type="button" onclick="setQuickFeedback('Өте жақсы! Реакция теңдеуі мен баланс мінсіз құрылған.')" class="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-emerald-500 hover:text-white transition">Дұрыс / Жарайсың</button>
-          <button type="button" onclick="setQuickFeedback('Оттек алдындағы коэффициенттерді қайта тексер.')" class="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-emerald-500 hover:text-white transition">Коэффициенттер қате</button>
-          <button type="button" onclick="setQuickFeedback('Реакция жүру жағдайлары көрсетілмеген (температура, катализатор).')" class="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-emerald-500 hover:text-white transition">Жағдайын жаз</button>
+          <button type="button" onclick="setQuickFeedback('Өте жақсы! Реакция теңдеуі мен типі дұрыс анықталған.')" class="px-2.5 py-1 rounded-lg bg-sky-50 dark:bg-slate-800 text-sky-800 dark:text-sky-300 border border-sky-200 dark:border-slate-700 hover:bg-sky-600 hover:text-white transition">Дұрыс / Жарайсың</button>
+          <button type="button" onclick="setQuickFeedback('Коэффициенттерді қайта тексер.')" class="px-2.5 py-1 rounded-lg bg-sky-50 dark:bg-slate-800 text-sky-800 dark:text-sky-300 border border-sky-200 dark:border-slate-700 hover:bg-sky-600 hover:text-white transition">Коэффициент қате</button>
+          <button type="button" onclick="setQuickFeedback('Реакция типінің анықтамасын толықтыр.')" class="px-2.5 py-1 rounded-lg bg-sky-50 dark:bg-slate-800 text-sky-800 dark:text-sky-300 border border-sky-200 dark:border-slate-700 hover:bg-sky-600 hover:text-white transition">Анықтаманы толықтыр</button>
         </div>
       </div>
 
-      <!-- Пікір жазу өрісі -->
       <div>
-        <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Мұғалімнің түсініктемесі / Кері байланыс:</label>
-        <textarea id="mReviewFeedbackText" rows="2" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-3 text-xs font-medium focus:ring-2 focus:ring-emerald-500 focus:outline-none" placeholder="Оқушыға арналған түсініктемені жазыңыз..."></textarea>
+        <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Мұғалімнің түсініктемесі:</label>
+        <textarea id="mReviewFeedbackText" rows="2" class="w-full bg-sky-50/50 dark:bg-slate-900 border border-sky-100 dark:border-slate-700 rounded-xl p-3 text-xs font-medium focus:ring-2 focus:ring-sky-500 focus:outline-none" placeholder="Оқушыға түсініктеме..."></textarea>
       </div>
 
-      <!-- Баға қою -->
       <div>
         <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Баға немесе ұпай (1-ден 5-ке дейін немесе 0-100):</label>
-        <input type="number" id="mReviewScoreInput" value="5" min="1" max="100" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-sm font-bold text-slate-900 dark:text-white">
+        <input type="number" id="mReviewScoreInput" value="5" min="1" max="100" class="w-full bg-sky-50/50 dark:bg-slate-900 border border-sky-100 dark:border-slate-700 rounded-xl px-3 py-2 text-sm font-bold">
       </div>
 
-      <!-- Әрекет батырмалары -->
       <div class="flex gap-2 pt-2">
         <button onclick="saveReview('needs_revision')" class="flex-1 bg-amber-500 hover:bg-amber-600 text-white font-bold py-2.5 rounded-xl text-xs transition">
-          Қайта өңдеуге жіберу
+          Өңдеуге жіберу
         </button>
-        <button onclick="saveReview('approved')" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 rounded-xl text-xs transition">
+        <button onclick="saveReview('approved')" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-xl text-xs transition">
           Қабылдау және сақтау
         </button>
       </div>
     </div>
   </div>
 
-  <!-- 4. Жаңа тапсырма құру терезесі -->
+  <!-- 4. Жаңа тапсырма терезесі -->
   <div id="newTaskModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-    <div class="bg-white dark:bg-slate-800 rounded-3xl max-w-lg w-full p-6 border border-slate-200 dark:border-slate-700 shadow-2xl space-y-4">
-      <div class="flex justify-between items-center border-b border-slate-100 dark:border-slate-700 pb-3">
+    <div class="lab-card max-w-lg w-full p-6 shadow-2xl space-y-4">
+      <div class="flex justify-between items-center border-b border-sky-100 dark:border-slate-700 pb-3">
         <h4 class="text-base font-black text-slate-900 dark:text-white">Жаңа химиялық тапсырма</h4>
-        <button onclick="closeNewTaskModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-white text-lg">
+        <button onclick="closeNewTaskModal()" class="text-slate-400 hover:text-slate-600 text-lg">
           <i class="fa-solid fa-xmark"></i>
         </button>
       </div>
 
       <form id="newTaskForm" onsubmit="handleCreateTask(event)" class="space-y-3">
         <div>
-          <label class="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">Тапсырма тақырыбы:</label>
-          <input type="text" id="newTaskTitle" required placeholder="Мысалы: Калий перманганатының тотығуы" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-medium">
+          <label class="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">Тақырыбы:</label>
+          <input type="text" id="newTaskTitle" required placeholder="Мысалы: Орынбасу реакциясы" class="w-full bg-sky-50/50 dark:bg-slate-900 border border-sky-100 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-medium">
         </div>
         <div>
-          <label class="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">Химия бөлімі:</label>
-          <select id="newTaskCategory" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-bold">
-            <option value="Бейорганикалық химия">Бейорганикалық химия</option>
-            <option value="Органикалық химия">Органикалық химия</option>
-            <option value="Есептеу тапсырмалары">Есептеу тапсырмалары</option>
-            <option value="Сапалық реакциялар">Сапалық реакциялар</option>
+          <label class="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">Реакция типі:</label>
+          <select id="newTaskCategory" class="w-full bg-sky-50/50 dark:bg-slate-900 border border-sky-100 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-bold">
+            <option value="Қосылу реакциясы">Қосылу реакциясы</option>
+            <option value="Айырылу реакциясы">Айырылу реакциясы</option>
+            <option value="Орынбасу реакциясы">Орынбасу реакциясы</option>
+            <option value="Алмасу реакциясы">Алмасу реакциясы</option>
           </select>
         </div>
         <div>
-          <label class="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">Сұлбасы немесе формуласы (көмекші):</label>
-          <input type="text" id="newTaskFormula" placeholder="Мысалы: 2H₂ + O₂ → 2H₂O" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-mono">
+          <label class="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">Сұлбасы немесе формуласы:</label>
+          <input type="text" id="newTaskFormula" placeholder="Мысалы: Zn + 2HCl → ZnCl₂ + H₂↑" class="w-full bg-sky-50/50 dark:bg-slate-900 border border-sky-100 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-mono">
         </div>
         <div>
-          <label class="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">Тапсырманың толық шарты:</label>
-          <textarea id="newTaskDesc" required rows="3" placeholder="Есептің немесе тапсырманың толық шартын жазыңыз..." class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-3 text-xs font-medium"></textarea>
+          <label class="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">Тапсырма шарты:</label>
+          <textarea id="newTaskDesc" required rows="3" placeholder="Тапсырманың толық шартын жазыңыз..." class="w-full bg-sky-50/50 dark:bg-slate-900 border border-sky-100 dark:border-slate-700 rounded-xl p-3 text-xs font-medium"></textarea>
         </div>
-        <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 rounded-xl text-xs transition">
+        <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-xl text-xs transition">
           Тапсырманы жариялау
         </button>
       </form>
     </div>
   </div>
 
+  <!-- 5. Мұғалім жаңа параграф / тақырып қосу терезесі (Автоматтандыру) -->
+  <div id="newParagraphModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="lab-card max-w-xl w-full p-6 sm:p-7 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+      <div class="flex justify-between items-center border-b border-sky-100 dark:border-slate-700 pb-3">
+        <div>
+          <h4 class="text-base font-black text-slate-900 dark:text-white flex items-center gap-2">
+            <i class="fa-solid fa-book-bookmark text-sky-600"></i> Жаңа параграф немесе тақырып қосу
+          </h4>
+          <p class="text-xs text-slate-500">Оқулық параграфы бойынша тапсырмаларды автоматты түрде енгізу</p>
+        </div>
+        <button onclick="closeNewParagraphModal()" class="text-slate-400 hover:text-slate-600 text-lg">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <form id="newParagraphForm" onsubmit="handleCreateParagraph(event)" class="space-y-4">
+        <div>
+          <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Параграф нөмірі мен тақырыбы:</label>
+          <input type="text" id="newParaTitle" required placeholder="Мысалы: §10. Сутектің химиялық қасиеттері" class="w-full bg-sky-50/50 dark:bg-slate-900 border border-sky-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-xs font-semibold focus:ring-2 focus:ring-sky-500">
+        </div>
+
+        <div>
+          <div class="flex justify-between items-center mb-1">
+            <label class="text-xs font-bold text-slate-700 dark:text-slate-300">Дайын шаблондар арқылы автоматты толтыру:</label>
+            <div class="flex gap-2">
+              <button type="button" onclick="fillParagraphTemplate('hydrogen')" class="text-[11px] font-bold text-sky-600 dark:text-sky-400 hover:underline">§10 Сутек үлгісі</button>
+              <button type="button" onclick="fillParagraphTemplate('water')" class="text-[11px] font-bold text-sky-600 dark:text-sky-400 hover:underline">§11 Су үлгісі</button>
+            </div>
+          </div>
+          <p class="text-[10px] text-slate-400">Төменде параграф бойынша тапсырмалар бірден жасалады және базаға жазылады:</p>
+        </div>
+
+        <div class="space-y-3 p-3 bg-sky-50/40 dark:bg-slate-900/50 rounded-2xl border border-sky-100 dark:border-slate-800">
+          <div>
+            <label class="block text-[11px] font-bold text-sky-700 dark:text-sky-300 mb-0.5">1-тапсырма (А-деңгейі):</label>
+            <input type="text" id="paraTask1Title" required placeholder="Тапсырма тақырыбы..." class="w-full bg-white dark:bg-slate-900 border border-sky-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs mb-1">
+            <textarea id="paraTask1Desc" required rows="2" placeholder="Тапсырма шарты мен сұрағы..." class="w-full bg-white dark:bg-slate-900 border border-sky-200 dark:border-slate-700 rounded-lg p-2 text-xs"></textarea>
+          </div>
+
+          <div>
+            <label class="block text-[11px] font-bold text-sky-700 dark:text-sky-300 mb-0.5">2-тапсырма (В-деңгейі):</label>
+            <input type="text" id="paraTask2Title" required placeholder="Тапсырма тақырыбы..." class="w-full bg-white dark:bg-slate-900 border border-sky-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs mb-1">
+            <textarea id="paraTask2Desc" required rows="2" placeholder="Тапсырма шарты мен сұрағы..." class="w-full bg-white dark:bg-slate-900 border border-sky-200 dark:border-slate-700 rounded-lg p-2 text-xs"></textarea>
+          </div>
+
+          <div>
+            <label class="block text-[11px] font-bold text-sky-700 dark:text-sky-300 mb-0.5">3-тапсырма (С-деңгейі):</label>
+            <input type="text" id="paraTask3Title" required placeholder="Тапсырма тақырыбы..." class="w-full bg-white dark:bg-slate-900 border border-sky-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs mb-1">
+            <textarea id="paraTask3Desc" required rows="2" placeholder="Тапсырма шарты мен сұрағы..." class="w-full bg-white dark:bg-slate-900 border border-sky-200 dark:border-slate-700 rounded-lg p-2 text-xs"></textarea>
+          </div>
+        </div>
+
+        <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold py-3 rounded-xl text-xs shadow-md transition flex items-center justify-center gap-2">
+          <i class="fa-solid fa-cloud-arrow-up"></i> Параграф тапсырмаларын базаға жүктеу
+        </button>
+      </form>
+    </div>
+  </div>
+
   <!-- Футер -->
-  <footer class="bg-white dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800 text-slate-400 text-xs py-5 mt-auto">
-    <div class="max-w-7xl mx-auto px-4 text-center space-y-1">
-      <p>© 2026 ChemLab Edu. Химия пәні бойынша интерактивті оқу кешені.</p>
+  <footer class="mt-8 border-t border-sky-100 dark:border-slate-800 py-6 text-center text-xs text-slate-400">
+    <div class="max-w-6xl mx-auto px-4 space-y-1">
+      <p class="font-medium">© 2026 ChemLab Edu — §9. Химиялық реакциялардың типтері бойынша интерактивті оқу кешені.</p>
     </div>
   </footer>
 

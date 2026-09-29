@@ -1,27 +1,67 @@
 // ========================================================
-// ChemLab Edu — Клиенттік логика (Supabase + Realtime)
-// Барлық мәтіндер қазақ тілінде, мұғалім құпиясөзімен қорғалған
+// ChemLab Edu — §9. Химиялық реакциялардың типтері
+// Himiya_virtual_lab стилі + chemistry_simulation тапсырмалары
 // ========================================================
 
 const SUPABASE_URL = "https://xrlpzpxwhwdvvytjozrl.supabase.co";
 const SUPABASE_KEY = "sb_publishable_GP2_euNodHn2mWuRUS_13A_O3zyokv5";
 
-// Мұғалім үшін құпиясөз (пароль)
+// Мұғалім құпиясөзі
 const TEACHER_PASSWORDS = ["химия2026", "chem2026", "12345"];
 
 // Supabase клиенті
 const sb = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null;
 
-// Жүйелік жағдай (State)
+// Глобалды тұрақты мәндер және оқулық тапсырмалары (§9 C-деңгейі)
+const DEFAULT_TASKS = [
+  {
+    id: 1,
+    title: '1-тапсырма. Реакция теңдеулерін аяқтау және типтерін анықтау',
+    category: 'Реакция типтері',
+    formula_hint: 'Al₂S₃ + HCl → ? | NH₃ → ? | CuCO₃ → ? | N₂ + O₂ → ? | P + Cl₂ → ?',
+    description: 'Мына реакция теңдеулерін аяқтап, олардың типтерін анықтаңдар:\n\n1) Al₂S₃ + HCl → ? + ?\n2) NH₃ → ? + ?\n3) CuCO₃ → ? + ?\n4) N₂ + O₂ → ?\n5) P + Cl₂ → ?\n\nТапсырма шарты: Әрбір реакция теңдеуіндегі сұрақ белгілерінің орнына түзілген зат формулаларын жазып, коэффициенттерді қойыңыз және реакция типін (қосылу, айырылу, орынбасу немесе алмасу) көрсетіңіз.'
+  },
+  {
+    id: 2,
+    title: '2-тапсырма. Реакция теңдеулерін толықтырып, теңестіру',
+    category: 'Теңдеулерді теңестіру',
+    formula_hint: 'AgNO₃ + Zn → ? | K₂S + CuCl₂ → ? | Fe + ? → FeCl₃ | Na₂O + H₃PO₄ → ? | FeCl₂ + ? → FeCl₃ | FeS + HCl → ?',
+    description: 'Мына реакция теңдеулерін толықтырып, теңестіріңдер:\n\n1) AgNO₃ + Zn → Zn(NO₃)₂ + ?\n2) K₂S + CuCl₂ → KCl + ?\n3) Fe + ? → FeCl₃\n4) Na₂O + H₃PO₄ → Na₃PO₄ + ?\n5) FeCl₂ + ? → FeCl₃\n6) FeS + HCl → ? + ?\n\nТапсырма шарты: Сұрақ белгілерінің орнына жетіспейтін реагенттер мен өнімдерді тауып жазыңыз және зат массасының сақталу заңына сәйкес коэффициенттерін қойып теңестіріңіз.'
+  },
+  {
+    id: 3,
+    title: '3-тапсырма. Зат формулаларын жазып, коэффициент қою және типтерін анықтау',
+    category: 'Кешенді тапсырма',
+    formula_hint: '? + ? → NaCl + H₂ | ? + ? → CO₂ | ? + ? → HgO | ? + ? → CuCl₂ + H₂O | ? → CaO + CO₂',
+    description: 'Сұрақ белгілерінің орнына зат формулаларын жазып, коэффициенттерін қойып, реакция типтерін анықтаңдар:\n\n1) ? + ? → NaCl + H₂\n2) ? + ? → CO₂\n3) ? + ? → HgO\n4) ? + ? → CuCl₂ + H₂O\n5) ? → CaO + CO₂\n\nТапсырма шарты: Берілген өнімдер мен бастапқы заттар сұлбасын негізге ала отырып, сұрақ белгілеріне сәйкес формулаларды анықтаңыз, коэффициенттер қойыңыз және реакция типін (қосылу, айырылу, орынбасу, алмасу) жазыңыз.'
+  }
+];
+
+// Глобалды күй
 let state = {
-  currentUser: null, // { id, name, role, avatar_color }
+  currentUser: null,
   users: [],
   tasks: [],
   submissions: [],
-  activeTaskId: null,
+  activeTaskId: 1,
   activeReviewSubId: null,
   theme: 'light',
-  soundEnabled: true
+  soundEnabled: true,
+
+  // Симуляция және таразы күйі
+  simReaction: 'CuS',
+  simM1: 6.4,
+  simM2: 3.2,
+
+  // Виртуалды зертхана күйі (Himiya_virtual_lab)
+  vlabCurrent: 0,
+  vlabDone: new Set(),
+
+  // Сұрыптау күйі (Sorting)
+  sortingScore: 0,
+
+  // Теңестіру күйі (Balancing)
+  balancingDone: false
 };
 
 // ======================== ТАҚЫРЫП (АҚ / ҚАРАҢҒЫ) ========================
@@ -47,18 +87,16 @@ function setTheme(theme) {
   } else {
     html.classList.remove('dark');
     html.classList.add('light');
-    if (icon) icon.className = 'fa-solid fa-moon text-indigo-500';
+    if (icon) icon.className = 'fa-solid fa-moon text-sky-600';
     if (text) text.textContent = 'Қараңғы тақырып';
   }
-
-  if (chartInstance) inspectCompound();
 }
 
 function toggleTheme() {
   setTheme(state.theme === 'dark' ? 'light' : 'dark');
 }
 
-// ======================== ДЫБЫСТАР ЖӘНЕ ХАБАРЛАМАЛАР ========================
+// ======================== ХАБАРЛАМАЛАР МЕН ДЫБЫСТАР ========================
 
 function playNotificationSound(type = 'success') {
   if (!state.soundEnabled) return;
@@ -95,7 +133,7 @@ function playNotificationSound(type = 'success') {
 function showToast(message, iconClass = 'fa-solid fa-circle-check text-emerald-500') {
   const container = document.getElementById('toastContainer');
   const toast = document.createElement('div');
-  toast.className = 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-xl rounded-2xl px-4 py-3 text-xs sm:text-sm text-slate-800 dark:text-slate-100 flex items-center gap-2.5 pointer-events-auto transition-all duration-300 transform translate-y-2 opacity-0';
+  toast.className = 'bg-white dark:bg-slate-800 border border-sky-100 dark:border-slate-700 shadow-xl rounded-2xl px-4 py-3 text-xs sm:text-sm text-slate-800 dark:text-slate-100 flex items-center gap-2.5 pointer-events-auto transition-all duration-300 transform translate-y-2 opacity-0';
   toast.innerHTML = `<i class="${iconClass} text-base"></i> <span>${message}</span>`;
   container.appendChild(toast);
 
@@ -109,7 +147,7 @@ function showToast(message, iconClass = 'fa-solid fa-circle-check text-emerald-5
   }, 4500);
 }
 
-// ======================== ОҚУШЫЛАР МЕН МҰҒАЛІМДІ АВТОРИЗАЦИЯЛАУ ========================
+// ======================== ҚОЛДАНУШЫ АВТОРИЗАЦИЯСЫ ========================
 
 async function checkSavedUser() {
   const saved = localStorage.getItem('chemlab_user');
@@ -158,7 +196,6 @@ async function handleUserLogin(e) {
 
   if (!name) return;
 
-  // Егер рөлі Мұғалім болса — құпиясөзді тексеру
   if (role === 'teacher') {
     const password = document.getElementById('loginTeacherPassword').value.trim();
     if (!TEACHER_PASSWORDS.includes(password)) {
@@ -167,7 +204,6 @@ async function handleUserLogin(e) {
     }
   }
 
-  // Supabase базасынан іздеу немесе жаңа қолданушы құру
   let user = null;
   const { data: existingUser } = await sb
     .from('users')
@@ -176,10 +212,9 @@ async function handleUserLogin(e) {
     .maybeSingle();
 
   if (existingUser) {
-    // Егер бұрыннан бар қолданушы болса
     user = existingUser;
   } else {
-    const colors = ['#10b981', '#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#06b6d4'];
+    const colors = ['#0284c7', '#2563eb', '#10b981', '#f59e0b', '#8b5cf6'];
     const randomColor = colors[Math.floor(Math.random() * colors.length)];
     const newId = (role === 'teacher' ? 'teacher_' : 'stud_') + Math.random().toString(36).substring(2, 9);
 
@@ -195,20 +230,19 @@ async function handleUserLogin(e) {
       .single();
 
     if (error) {
-      console.error("Ошибка сохранения пользователя:", error);
-      showToast('Қолданушыны базаға сақтау қатесі', 'fa-solid fa-triangle-exclamation text-rose-500');
+      console.error("Қолданушыны сақтау қатесі:", error);
+      showToast('Қолданушыны сақтау қатесі', 'fa-solid fa-triangle-exclamation text-rose-500');
       return;
     }
     user = created;
   }
 
-  // localStorage-те сақтау (куки/кэш тазаланғанға дейін сақталады)
   state.currentUser = user;
   localStorage.setItem('chemlab_user', JSON.stringify(user));
 
   closeLoginModal();
   applyUserSession();
-  showToast(`Қош келдіңіз, ${user.name}!`, 'fa-solid fa-user-check text-emerald-500');
+  showToast(`Қош келдіңіз, ${user.name}!`, 'fa-solid fa-user-check text-sky-600');
 }
 
 function applyUserSession() {
@@ -218,7 +252,7 @@ function applyUserSession() {
   document.getElementById('userNameDisplay').textContent = user.name;
   document.getElementById('userRoleDisplay').textContent = user.role === 'teacher' ? 'Мұғалім' : 'Оқушы';
   document.getElementById('userAvatarDot').textContent = user.name.charAt(0).toUpperCase();
-  document.getElementById('userAvatarDot').style.backgroundColor = user.avatar_color || '#10b981';
+  document.getElementById('userAvatarDot').style.backgroundColor = user.avatar_color || '#0284c7';
 
   const bannerName = document.getElementById('bannerStudentName');
   if (bannerName) bannerName.textContent = user.name;
@@ -232,13 +266,11 @@ function applyUserSession() {
   loadTasksAndSubmissions();
 }
 
-// ======================== МҰҒАЛІМ ПАНЕЛІНЕ КІРУДІ ҚОРҒАУ ========================
-
+// Мұғалім панеліне кіруді құпиясөзбен қорғау
 function handleTeacherTabClick() {
   if (state.currentUser && state.currentUser.role === 'teacher') {
     switchTab('teacher');
   } else {
-    // Оқушы Мұғалім панелін басқанда құпиясөз сұрау
     openTeacherAuthModal();
   }
 }
@@ -264,47 +296,46 @@ async function handleTeacherModalAuth(e) {
 
   if (TEACHER_PASSWORDS.includes(pass)) {
     closeTeacherAuthModal();
-    // Қолданушыны мұғалім ретінде растау
     if (state.currentUser) {
       state.currentUser.role = 'teacher';
       localStorage.setItem('chemlab_user', JSON.stringify(state.currentUser));
       applyUserSession();
     }
     switchTab('teacher');
-    showToast('Мұғалім мәртебесі сәтті расталды!', 'fa-solid fa-shield-halved text-emerald-500');
+    showToast('Мұғалім мәртебесі сәтті расталды!', 'fa-solid fa-shield-halved text-sky-600');
   } else {
     if (err) err.classList.remove('hidden');
   }
 }
 
-// ======================== ҚОЙЫНДЫЛАРДЫ АУЫСТЫРУ (TABS) ========================
+// ======================== ҚОЙЫНДЫЛАРДЫ АУЫСТЫРУ ========================
 
 function switchTab(tabId) {
-  ['tasks', 'sim', 'explorer', 'teacher'].forEach(t => {
+  ['tasks', 'calc', 'lab', 'sorting', 'balance', 'teacher'].forEach(t => {
     const view = document.getElementById(`view-${t}`);
     const tabBtn = document.getElementById(`tab-${t}`);
     const mobBtn = document.getElementById(`mob-tab-${t}`);
 
     if (t === tabId) {
       view?.classList.remove('hidden');
-      tabBtn?.classList.add('bg-white', 'dark:bg-slate-800', 'text-emerald-600', 'dark:text-emerald-400', 'shadow-sm');
-      tabBtn?.classList.remove('text-slate-600', 'dark:text-slate-400');
-      mobBtn?.classList.add('bg-white', 'dark:bg-slate-800', 'text-emerald-600', 'dark:text-emerald-400', 'shadow-sm');
+      tabBtn?.classList.add('active');
+      mobBtn?.classList.add('bg-white', 'dark:bg-slate-800', 'text-sky-600', 'dark:text-sky-400', 'shadow-sm');
       mobBtn?.classList.remove('text-slate-600', 'dark:text-slate-400');
     } else {
       view?.classList.add('hidden');
-      tabBtn?.classList.remove('bg-white', 'dark:bg-slate-800', 'text-emerald-600', 'dark:text-emerald-400', 'shadow-sm');
-      tabBtn?.classList.add('text-slate-600', 'dark:text-slate-400');
-      mobBtn?.classList.remove('bg-white', 'dark:bg-slate-800', 'text-emerald-600', 'dark:text-emerald-400', 'shadow-sm');
+      tabBtn?.classList.remove('active');
+      mobBtn?.classList.remove('bg-white', 'dark:bg-slate-800', 'text-sky-600', 'dark:text-sky-400', 'shadow-sm');
       mobBtn?.classList.add('text-slate-600', 'dark:text-slate-400');
     }
   });
 
-  if (tabId === 'explorer') inspectCompound();
+  if (tabId === 'calc') initSim();
+  if (tabId === 'lab') initVLab();
+  if (tabId === 'sorting') renderSortingPool();
   if (tabId === 'teacher') renderTeacherDashboard();
 }
 
-// ======================== SUPABASE REALTIME БАЙЛАНЫСЫ ========================
+// ======================== SUPABASE МӘЛІМЕТТЕРІН ЖҮКТЕУ ========================
 
 async function loadTasksAndSubmissions() {
   if (!sb) return;
@@ -315,7 +346,7 @@ async function loadTasksAndSubmissions() {
     sb.from('submissions').select('*, tasks(title, category, formula_hint)').order('id', { ascending: false })
   ]);
 
-  state.tasks = tRes.data || [];
+  state.tasks = (tRes.data && tRes.data.length > 0) ? tRes.data : DEFAULT_TASKS;
   state.users = uRes.data || [];
   state.submissions = (sRes.data || []).map(s => ({
     ...s,
@@ -323,6 +354,10 @@ async function loadTasksAndSubmissions() {
     task_category: s.tasks ? s.tasks.category : '',
     formula_hint: s.tasks ? s.tasks.formula_hint : ''
   }));
+
+  if (!state.activeTaskId && state.tasks.length > 0) {
+    state.activeTaskId = state.tasks[0].id;
+  }
 
   renderStudentTasksList();
   renderTeacherDashboard();
@@ -339,18 +374,18 @@ function initSupabaseRealtime() {
       if (state.currentUser && state.currentUser.role === 'teacher') {
         if (newSub.status === 'submitted') {
           playNotificationSound('new_sub');
-          showToast(`Оқушы <strong>${newSub.student_name}</strong> жауап жіберді!`, 'fa-solid fa-inbox text-amber-500');
+          showToast(`Оқушы <strong>${newSub.student_name}</strong> шешім жіберді!`, 'fa-solid fa-inbox text-amber-500');
         }
       } else if (state.currentUser && state.currentUser.id === newSub.student_id) {
         if (newSub.status === 'approved' || newSub.status === 'needs_revision') {
           playNotificationSound('success');
-          const statusText = newSub.status === 'approved' ? 'қабылданды' : 'қайта өңдеуге жіберілді';
-          showToast(`Мұғалім шешімді тексерді (${statusText}, балл: ${newSub.score || '—'})!`, 'fa-solid fa-graduation-cap text-emerald-500');
+          const statusText = newSub.status === 'approved' ? 'қабылданды' : 'өңдеуге жіберілді';
+          showToast(`Мұғалім шешімді тексерді (${statusText}, ұпай: ${newSub.score || '—'})!`, 'fa-solid fa-graduation-cap text-sky-600');
         }
       }
     })
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'tasks' }, async (payload) => {
-      showToast(`Жаңа тапсырма жарияланды: "${payload.new.title}"`, 'fa-solid fa-bell text-sky-500');
+      showToast(`Жаңа тапсырма қосылды: "${payload.new.title}"`, 'fa-solid fa-bell text-sky-600');
       await loadTasksAndSubmissions();
     })
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'users' }, async () => {
@@ -361,7 +396,7 @@ function initSupabaseRealtime() {
     .subscribe();
 }
 
-// ======================== ОҚУШЫ БӨЛІМІ (ТАПСЫРМАЛАР) ========================
+// ======================== ОҚУШЫ ТАПСЫРМАЛАРЫ (§9) ========================
 
 function renderStudentTasksList() {
   const container = document.getElementById('studentTasksList');
@@ -385,11 +420,11 @@ function renderStudentTasksList() {
 
     if (sub) {
       if (sub.status === 'submitted') {
-        badgeHtml = '<span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-500/30">Тексерілуде</span>';
+        badgeHtml = '<span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400">Тексерілуде</span>';
       } else if (sub.status === 'approved') {
-        badgeHtml = `<span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/30">Қабылданды (${sub.score || '5'})</span>`;
+        badgeHtml = `<span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400">Қабылданды (${sub.score || '5'})</span>`;
       } else if (sub.status === 'needs_revision') {
-        badgeHtml = '<span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-100 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-500/30">Қайта өңдеуге</span>';
+        badgeHtml = '<span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-100 dark:bg-rose-500/20 text-rose-700 dark:text-rose-400">Өңдеуге</span>';
       }
     }
 
@@ -397,15 +432,15 @@ function renderStudentTasksList() {
     const isActive = state.activeTaskId === task.id;
     item.className = `p-3 rounded-2xl border cursor-pointer transition-all ${
       isActive 
-        ? 'bg-emerald-50/80 dark:bg-emerald-950/30 border-emerald-500 shadow-sm' 
-        : 'bg-slate-50/60 dark:bg-slate-900/60 hover:bg-slate-100 dark:hover:bg-slate-900 border-slate-200 dark:border-slate-800'
+        ? 'bg-sky-50 dark:bg-slate-900 border-sky-500 shadow-sm' 
+        : 'bg-white dark:bg-slate-900/60 hover:bg-sky-50/50 border-sky-100 dark:border-slate-800'
     }`;
     item.innerHTML = `
       <div class="flex justify-between items-center mb-1">
-        <span class="text-[10px] uppercase font-bold text-slate-400 font-mono">${task.category}</span>
+        <span class="text-[10px] uppercase font-bold text-sky-600 dark:text-sky-400 font-mono">${task.category}</span>
         ${badgeHtml}
       </div>
-      <div class="text-xs font-bold text-slate-800 dark:text-slate-200 leading-snug">
+      <div class="text-xs font-bold text-slate-800 dark:text-slate-100 leading-snug">
         ${idx + 1}. ${task.title}
       </div>
     `;
@@ -454,7 +489,7 @@ function displayTaskDetails(task) {
     answerInput.value = mySub.answer_text;
     if (mySub.status === 'approved') {
       statusBadge.className = 'text-xs font-bold px-3 py-1 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300';
-      statusBadge.textContent = `Қабылданды: ${mySub.score || '5'} балл`;
+      statusBadge.textContent = `Қабылданды: ${mySub.score || '5'} ұпай`;
 
       feedbackCard.classList.remove('hidden');
       feedbackCard.className = 'p-4 rounded-2xl border bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-500/30 text-emerald-900 dark:text-emerald-200';
@@ -466,16 +501,16 @@ function displayTaskDetails(task) {
       hintMsg.textContent = 'Жұмыс мұғалім тарапынан қабылданған.';
     } else if (mySub.status === 'needs_revision') {
       statusBadge.className = 'text-xs font-bold px-3 py-1 rounded-full bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300';
-      statusBadge.textContent = 'Қайта қарауды қажет етеді';
+      statusBadge.textContent = 'Өңдеуді қажет етеді';
 
       feedbackCard.classList.remove('hidden');
       feedbackCard.className = 'p-4 rounded-2xl border bg-rose-50 dark:bg-rose-950/30 border-rose-200 dark:border-rose-500/30 text-rose-900 dark:text-rose-200';
       document.getElementById('feedbackScorePill').className = 'text-xs font-bold px-2.5 py-0.5 rounded-lg font-mono bg-rose-200 text-rose-800 dark:bg-rose-500/30 dark:text-rose-200';
       document.getElementById('feedbackScorePill').textContent = 'Өңдеуге';
-      document.getElementById('feedbackTextDisplay').textContent = mySub.teacher_feedback || 'Қателіктерді түзеп, қайта жіберіңіз.';
+      document.getElementById('feedbackTextDisplay').textContent = mySub.teacher_feedback || 'Қателіктерді түзетіп, қайта жіберіңіз.';
 
       submitBtn.innerHTML = '<i class="fa-solid fa-paper-plane mr-1"></i> <span>Түзетілген шешімді жіберу</span>';
-      hintMsg.textContent = 'Мұғалім жұмыстың түзетілуін күтуде.';
+      hintMsg.textContent = 'Мұғалім жұмыстың өңделуін күтуде.';
     } else {
       statusBadge.className = 'text-xs font-bold px-3 py-1 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300';
       statusBadge.textContent = 'Мұғалімнің тексеруінде';
@@ -554,12 +589,679 @@ async function submitStudentSolution() {
   }
 
   if (!err) {
-    showToast('Шешім мұғалімге сәтті жіберілді!', 'fa-solid fa-paper-plane text-emerald-500');
+    showToast('Шешім мұғалімге сәтті жіберілді!', 'fa-solid fa-paper-plane text-sky-600');
     playNotificationSound('success');
     await loadTasksAndSubmissions();
   } else {
-    console.error("Ошибка сохранения:", err);
+    console.error("Жауапты сақтау қатесі:", err);
     showToast('Жауапты сақтау барысында қате орын алды', 'fa-solid fa-triangle-exclamation text-rose-500');
+  }
+}
+
+// ======================== ТӘЖІРИБЕ ЖӘНЕ ТАРАЗЫ СИМУЛЯЦИЯСЫ ========================
+
+const simReactionsData = {
+  CuS: {
+    title: '1. Мыс + Күкірт → Мыс(II) сульфиді (Cu + S = CuS)',
+    r1Name: 'Мыс (Cu)',
+    r2Name: 'Күкірт (S)',
+    r1Default: 6.4,
+    r2Default: 3.2,
+    ratioR1: 2,
+    ratioR2: 1,
+    prodName: 'Мыс(II) сульфиді',
+    prodFormula: 'CuS',
+    ratioText: 'm(Cu) : m(S) = 64 : 32 = 2 : 1'
+  },
+  MgO: {
+    title: '2. Магний + Оттек → Магний оксиді (2Mg + O₂ = 2MgO)',
+    r1Name: 'Магний (Mg)',
+    r2Name: 'Оттек (O₂)',
+    r1Default: 3.0,
+    r2Default: 2.0,
+    ratioR1: 3,
+    ratioR2: 2,
+    prodName: 'Магний оксиді',
+    prodFormula: 'MgO',
+    ratioText: 'm(Mg) : m(O) = 24 : 16 = 3 : 2'
+  },
+  H2O: {
+    title: '3. Сутек + Оттек → Су синтезі (2H₂ + O₂ = 2H₂O)',
+    r1Name: 'Сутек (H₂)',
+    r2Name: 'Оттек (O₂)',
+    r1Default: 2.0,
+    r2Default: 16.0,
+    ratioR1: 1,
+    ratioR2: 8,
+    prodName: 'Су',
+    prodFormula: 'H₂O',
+    ratioText: 'm(H) : m(O) = 2 : 16 = 1 : 8'
+  },
+  FeCl3: {
+    title: '4. Темір + Хлор → Темір(III) хлориді (2Fe + 3Cl₂ = 2FeCl₃)',
+    r1Name: 'Темір (Fe)',
+    r2Name: 'Хлор (Cl₂)',
+    r1Default: 11.2,
+    r2Default: 21.3,
+    ratioR1: 112,
+    ratioR2: 213,
+    prodName: 'Темір(III) хлориді',
+    prodFormula: 'FeCl₃',
+    ratioText: 'm(Fe) : m(Cl) = 112 : 213'
+  },
+  Al2S3: {
+    title: '5. Алюминий + Күкірт → Алюминий сульфиді (2Al + 3S = Al₂S₃)',
+    r1Name: 'Алюминий (Al)',
+    r2Name: 'Күкірт (S)',
+    r1Default: 5.4,
+    r2Default: 9.6,
+    ratioR1: 9,
+    ratioR2: 16,
+    prodName: 'Алюминий сульфиді',
+    prodFormula: 'Al₂S₃',
+    ratioText: 'm(Al) : m(S) = 54 : 96 = 9 : 16'
+  }
+};
+
+let simSelectedReaction = 'CuS';
+
+function initSim() {
+  updateSimDisplay();
+  runCustomCalc();
+}
+
+function changeSimReaction() {
+  const sel = document.getElementById('simReactionSelect');
+  if (!sel) return;
+  simSelectedReaction = sel.value;
+  const data = simReactionsData[simSelectedReaction];
+
+  const titleEl = document.getElementById('currentReactionTitle');
+  if (titleEl) titleEl.textContent = data.title;
+
+  const r1Label = document.getElementById('sim-r1-label');
+  const r2Label = document.getElementById('sim-r2-label');
+  if (r1Label) r1Label.textContent = `1-реагент: ${data.r1Name}`;
+  if (r2Label) r2Label.textContent = `2-реагент: ${data.r2Name}`;
+
+  setSimPreset(simSelectedReaction, data.r1Default, data.r2Default);
+}
+
+function handleSimInputChange(which) {
+  const inputEl = document.getElementById(`sim-${which}-input`);
+  const sliderEl = document.getElementById(`sim-${which}-slider`);
+  if (!inputEl || !sliderEl) return;
+
+  let val = parseFloat(inputEl.value) || 0;
+  if (val < 0) val = 0;
+  sliderEl.value = Math.min(val, parseFloat(sliderEl.max));
+  resetSimStatus();
+  updateSimDisplay();
+}
+
+function handleSimSliderChange(which) {
+  const inputEl = document.getElementById(`sim-${which}-input`);
+  const sliderEl = document.getElementById(`sim-${which}-slider`);
+  if (!inputEl || !sliderEl) return;
+
+  const val = parseFloat(sliderEl.value) || 0;
+  inputEl.value = val.toFixed(1);
+  resetSimStatus();
+  updateSimDisplay();
+}
+
+function resetSimStatus() {
+  const dot = document.getElementById('simStatusDot');
+  const txt = document.getElementById('simStatusText');
+  const sub = document.getElementById('simScaleSub');
+  if (dot) dot.className = 'w-3 h-3 rounded-full bg-amber-400 animate-pulse';
+  if (txt) txt.textContent = 'ДАЙЫН: ҚЫЗДЫРУДЫ КҮТУДЕ';
+  if (sub) sub.textContent = 'Бастапқы реакциялық қоспа';
+
+  const resProd = document.getElementById('simResProduct');
+  const resExcess = document.getElementById('simResExcess');
+  if (resProd) resProd.textContent = '—';
+  if (resExcess) resExcess.textContent = '—';
+}
+
+function updateSimDisplay() {
+  const m1 = parseFloat(document.getElementById('sim-r1-input')?.value || '6.4');
+  const m2 = parseFloat(document.getElementById('sim-r2-input')?.value || '3.2');
+  const total = (m1 + m2).toFixed(2);
+
+  const scaleVal = document.getElementById('simScaleVal');
+  if (scaleVal) scaleVal.textContent = total;
+
+  const data = simReactionsData[simSelectedReaction] || simReactionsData.CuS;
+
+  const l1 = document.getElementById('simLayer1');
+  const l2 = document.getElementById('simLayer2');
+  if (l1) {
+    l1.className = 'w-full bg-amber-600/80 flex items-center justify-center text-[10px] font-mono text-white font-bold transition-all duration-700';
+    l1.textContent = `${data.r1Name} (${m1}г)`;
+  }
+  if (l2) {
+    l2.className = 'w-full bg-yellow-400/90 flex items-center justify-center text-[10px] font-mono text-slate-900 font-bold transition-all duration-700';
+    l2.textContent = `${data.r2Name} (${m2}г)`;
+  }
+
+  const consText = document.getElementById('simConservationText');
+  const stepText = document.getElementById('simStepText');
+  if (consText) consText.textContent = `m(бастапқы) = ${total} г = m(қоспа)`;
+  if (stepText) stepText.textContent = `Стехиометриялық қатынас: ${data.ratioText}`;
+}
+
+function setSimPreset(reactionKey, m1, m2) {
+  simSelectedReaction = reactionKey;
+  const sel = document.getElementById('simReactionSelect');
+  if (sel) sel.value = reactionKey;
+
+  const data = simReactionsData[reactionKey];
+  const titleEl = document.getElementById('currentReactionTitle');
+  if (titleEl) titleEl.textContent = data.title;
+
+  const r1Label = document.getElementById('sim-r1-label');
+  const r2Label = document.getElementById('sim-r2-label');
+  if (r1Label) r1Label.textContent = `1-реагент: ${data.r1Name}`;
+  if (r2Label) r2Label.textContent = `2-реагент: ${data.r2Name}`;
+
+  const in1 = document.getElementById('sim-r1-input');
+  const sl1 = document.getElementById('sim-r1-slider');
+  const in2 = document.getElementById('sim-r2-input');
+  const sl2 = document.getElementById('sim-r2-slider');
+
+  if (in1) in1.value = m1;
+  if (sl1) sl1.value = Math.min(m1, parseFloat(sl1.max));
+  if (in2) in2.value = m2;
+  if (sl2) sl2.value = Math.min(m2, parseFloat(sl2.max));
+
+  resetSimStatus();
+  updateSimDisplay();
+}
+
+function runSimReaction() {
+  const m1 = parseFloat(document.getElementById('sim-r1-input')?.value || '6.4');
+  const m2 = parseFloat(document.getElementById('sim-r2-input')?.value || '3.2');
+  if (m1 <= 0 || m2 <= 0) {
+    alert('Реагенттер массасын оң сан ретінде енгізіңіз!');
+    return;
+  }
+
+  const flame = document.getElementById('simFlameContainer');
+  const dot = document.getElementById('simStatusDot');
+  const txt = document.getElementById('simStatusText');
+  const btn = document.getElementById('simBtnReact');
+
+  if (flame) flame.classList.remove('hidden');
+  if (dot) dot.className = 'w-3 h-3 rounded-full bg-orange-500 animate-ping';
+  if (txt) txt.textContent = 'РЕАКЦИЯ ЖҮРУДЕ (ҚЫЗДЫРУ)...';
+  if (btn) btn.disabled = true;
+
+  playNotificationSound('success');
+
+  setTimeout(() => {
+    if (flame) flame.classList.add('hidden');
+    if (dot) dot.className = 'w-3 h-3 rounded-full bg-emerald-500';
+    if (txt) txt.textContent = 'РЕАКЦИЯ АЯҚТАЛДЫ';
+    if (btn) btn.disabled = false;
+
+    calculateSimResults(m1, m2);
+    showToast('Реакция сәтті аяқталды! Өнімдер мен қалдық массасын қараңыз.', 'fa-solid fa-flask-vial text-sky-600');
+  }, 1200);
+}
+
+function calculateSimResults(m1, m2) {
+  const data = simReactionsData[simSelectedReaction] || simReactionsData.CuS;
+  const ratioR1 = data.ratioR1;
+  const ratioR2 = data.ratioR2;
+
+  const neededR2 = (m1 * ratioR2) / ratioR1;
+  let productMass = 0;
+  let excessMass = 0;
+  let excessSubstance = '';
+
+  if (m2 >= neededR2) {
+    const usedR2 = neededR2;
+    productMass = m1 + usedR2;
+    excessMass = m2 - usedR2;
+    excessSubstance = `${data.r2Name} (Артық)`;
+  } else {
+    const neededR1 = (m2 * ratioR1) / ratioR2;
+    const usedR1 = neededR1;
+    productMass = m2 + usedR1;
+    excessMass = m1 - usedR1;
+    excessSubstance = `${data.r1Name} (Артық)`;
+  }
+
+  const resProd = document.getElementById('simResProduct');
+  const resExcess = document.getElementById('simResExcess');
+  const subText = document.getElementById('simScaleSub');
+  const consText = document.getElementById('simConservationText');
+  const stepText = document.getElementById('simStepText');
+
+  if (resProd) resProd.textContent = `${data.prodName} (${productMass.toFixed(2)} г)`;
+  if (resExcess) {
+    resExcess.textContent = excessMass > 0.005 ? `${excessSubstance}: ${excessMass.toFixed(2)} г` : 'Жоқ (толық реакция)';
+  }
+  if (subText) subText.textContent = `Түзілген өнім мен қалдық массасы: ${(productMass + excessMass).toFixed(2)} г`;
+
+  const total = (m1 + m2).toFixed(2);
+  if (consText) consText.textContent = `m(бастапқы) = ${total}г = m(өнім ${productMass.toFixed(2)}г + қалдық ${excessMass.toFixed(2)}г) = ${total}г`;
+  if (stepText) stepText.textContent = `Стехиометриялық есеп: ${data.ratioText}. Түзілген ${data.prodFormula}: ${productMass.toFixed(2)}г.`;
+
+  const l1 = document.getElementById('simLayer1');
+  const l2 = document.getElementById('simLayer2');
+  if (l1) {
+    l1.className = 'w-full bg-sky-700 flex items-center justify-center text-[10px] font-mono text-white font-bold transition-all duration-700';
+    l1.textContent = `${data.prodFormula} өнімі (${productMass.toFixed(2)}г)`;
+  }
+  if (l2) {
+    l2.className = 'w-full bg-slate-700/80 flex items-center justify-center text-[10px] font-mono text-slate-300 font-bold transition-all duration-700';
+    l2.textContent = excessMass > 0.005 ? `Артық: ${excessMass.toFixed(2)}г` : 'Толық әрекеттесті';
+  }
+}
+
+function resetSim() {
+  const data = simReactionsData[simSelectedReaction] || simReactionsData.CuS;
+  setSimPreset(simSelectedReaction, data.r1Default, data.r2Default);
+}
+
+function runCustomCalc() {
+  const m1 = parseFloat(document.getElementById('calcM1')?.value) || 0;
+  const m2 = parseFloat(document.getElementById('calcM2')?.value) || 0;
+  const res = document.getElementById('calcRatioRes');
+  if (!res) return;
+
+  if (m1 <= 0 || m2 <= 0) {
+    res.textContent = '—';
+    return;
+  }
+
+  const gcd = (a, b) => b < 0.01 ? a : gcd(b, a % b);
+  let g = gcd(m1, m2);
+  let r1 = (m1 / g).toFixed(1).replace('.0', '');
+  let r2 = (m2 / g).toFixed(1).replace('.0', '');
+
+  res.textContent = `${r1} : ${r2}`;
+}
+
+// ======================== ВИРТУАЛДЫ ЗЕРТХАНА (Himiya_virtual_lab) ========================
+
+const vlabData = [
+  {
+    type: 'Қосылу',
+    title: '1-тәжірибе. Қосылу реакциясы: 2Mg + O₂ → 2MgO',
+    goal: 'Екі немесе бірнеше бастапқы заттан бір ғана жаңа зат түзілуін бақыла.',
+    materials: ['Mg (Магний)', 'O₂ (Оттек)'],
+    eq: '2Mg + O₂ → 2MgO',
+    start: '2', prod: '1',
+    comp: 'Жай + жай → күрделі',
+    obs: 'Жарқыраған ақ жалынмен жанып, ақ магний оксиді түзіледі.',
+    hasFlame: true,
+    liquidColor: 'rgba(56, 189, 248, 0.35)'
+  },
+  {
+    type: 'Айырылу',
+    title: '2-тәжірибе. Айырылу реакциясы: CaCO₃ → CaO + CO₂↑',
+    goal: 'Бір күрделі заттың бірнеше жаңа затқа айналуын бақыла.',
+    materials: ['CaCO₃ (Әктас)', 'Қыздыру'],
+    eq: 'CaCO₃ → CaO + CO₂↑',
+    start: '1', prod: '2',
+    comp: 'Күрделі → күрделі + күрделі',
+    obs: 'Қыздырғанда бастапқы заттан көмірқышқыл газы бөлінеді.',
+    hasFlame: true,
+    liquidColor: 'rgba(234, 179, 8, 0.3)'
+  },
+  {
+    type: 'Орынбасу',
+    title: '3-тәжірибе. Орынбасу реакциясы: Zn + 2HCl → ZnCl₂ + H₂↑',
+    goal: 'Жай заттың күрделі зат құрамындағы элементті алмастыруын бақыла.',
+    materials: ['Zn (Мырыш)', 'HCl (Тұз қышқылы)'],
+    eq: 'Zn + 2HCl → ZnCl₂ + H₂↑',
+    start: '2', prod: '2',
+    comp: 'Жай + күрделі → күрделі + жай',
+    obs: 'Газ көпіршіктері белсенді бөлінеді, сутек газы шығады.',
+    hasFlame: false,
+    liquidColor: 'rgba(16, 185, 129, 0.35)'
+  },
+  {
+    type: 'Алмасу',
+    title: '4-тәжірибе. Алмасу реакциясы: CuO + 2HCl → CuCl₂ + H₂O',
+    goal: 'Екі күрделі зат құрам бөліктерінің орын алмасуын бақыла.',
+    materials: ['CuO (Мыс(II) оксиді)', 'HCl (Қышқыл)'],
+    eq: 'CuO + 2HCl → CuCl₂ + H₂O',
+    start: '2', prod: '2',
+    comp: 'Күрделі + күрделі → күрделі + күрделі',
+    obs: 'Қара CuO еріп, көгілдір-жасыл CuCl₂ ерітіндісі түзіледі.',
+    hasFlame: false,
+    liquidColor: 'rgba(6, 182, 212, 0.45)'
+  }
+];
+
+function initVLab() {
+  const tabsContainer = document.getElementById('vlabTabs');
+  if (!tabsContainer) return;
+  tabsContainer.innerHTML = '';
+
+  vlabData.forEach((d, i) => {
+    const btn = document.createElement('button');
+    btn.className = `py-2.5 px-3 rounded-xl font-bold text-xs shadow-sm border transition flex items-center justify-center gap-1.5 ${
+      state.vlabCurrent === i 
+        ? 'bg-blue-600 text-white border-blue-600' 
+        : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-sky-100 dark:border-slate-700 hover:bg-sky-50'
+    }`;
+    btn.innerHTML = `<span>${i + 1}. ${d.type}</span> ${state.vlabDone.has(i) ? '<i class="fa-solid fa-check text-emerald-400"></i>' : ''}`;
+    btn.onclick = () => selectVLab(i);
+    tabsContainer.appendChild(btn);
+  });
+
+  selectVLab(state.vlabCurrent);
+  updateVLabSheet();
+}
+
+function selectVLab(index) {
+  state.vlabCurrent = index;
+  resetVLab();
+
+  // Жаңарту
+  const tabsContainer = document.getElementById('vlabTabs');
+  if (tabsContainer) {
+    const btns = tabsContainer.querySelectorAll('button');
+    btns.forEach((b, i) => {
+      if (i === index) {
+        b.className = 'py-2.5 px-3 rounded-xl font-bold text-xs shadow-sm border bg-blue-600 text-white border-blue-600 transition flex items-center justify-center gap-1.5';
+      } else {
+        b.className = 'py-2.5 px-3 rounded-xl font-bold text-xs shadow-sm border bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-sky-100 dark:border-slate-700 hover:bg-sky-50 transition flex items-center justify-center gap-1.5';
+      }
+    });
+  }
+
+  const d = vlabData[index];
+  document.getElementById('vlabTitle').textContent = d.title;
+  document.getElementById('vlabGoal').textContent = 'Мақсат: ' + d.goal;
+  document.getElementById('vlabMaterials').innerHTML = d.materials.map(x => `<span class="mat-pill">${x}</span>`).join('');
+  document.getElementById('vlabEquation').textContent = d.eq;
+  document.getElementById('vlabLiquid').style.background = d.liquidColor;
+
+  document.getElementById('vlabStartCount').textContent = 'Тәжірибе іске қосылғаннан кейін анықталады';
+  document.getElementById('vlabProductCount').textContent = '—';
+  document.getElementById('vlabComposition').textContent = '—';
+  document.getElementById('vlabObservation').textContent = '—';
+  document.getElementById('vlabResult').textContent = '';
+  document.getElementById('vlabAnswers').innerHTML = '';
+}
+
+function runVLabReaction() {
+  const d = vlabData[state.vlabCurrent];
+  const box = document.getElementById('vlabBox');
+  const flame = document.getElementById('vlabFlame');
+  const visualText = document.getElementById('vlabVisualText');
+  const runBtn = document.getElementById('vlabRunBtn');
+
+  box.classList.add('reaction-running');
+  if (d.hasFlame) {
+    box.classList.add('has-flame');
+    flame.style.display = 'block';
+  } else {
+    box.classList.remove('has-flame');
+    flame.style.display = 'none';
+  }
+
+  visualText.textContent = 'Реакция жүріп жатыр...';
+  runBtn.disabled = true;
+
+  setTimeout(() => {
+    box.classList.remove('reaction-running', 'has-flame');
+    flame.style.display = 'none';
+    visualText.textContent = 'Бақылау аяқталды. Төмендегі зерттеу сұрағына жауап беріңіз:';
+    runBtn.disabled = false;
+
+    document.getElementById('vlabStartCount').textContent = d.start;
+    document.getElementById('vlabProductCount').textContent = d.prod;
+    document.getElementById('vlabComposition').textContent = d.comp;
+    document.getElementById('vlabObservation').textContent = d.obs;
+
+    showVLabAnswers();
+  }, 1300);
+}
+
+function showVLabAnswers() {
+  const box = document.getElementById('vlabAnswers');
+  box.innerHTML = '';
+  vlabData.forEach(d => {
+    const b = document.createElement('button');
+    b.className = 'ans-btn';
+    b.textContent = d.type + ' реакциясы';
+    b.onclick = () => checkVLabAnswer(d.type);
+    box.appendChild(b);
+  });
+}
+
+function checkVLabAnswer(chosenType) {
+  const d = vlabData[state.vlabCurrent];
+  const r = document.getElementById('vlabResult');
+
+  if (chosenType === d.type) {
+    r.textContent = `Дұрыс! Бұл — ${d.type} реакциясы.`;
+    r.className = 'font-bold text-xs text-emerald-600 dark:text-emerald-400 mt-2';
+    if (!state.vlabDone.has(state.vlabCurrent)) {
+      state.vlabDone.add(state.vlabCurrent);
+      updateVLabSheet();
+      updateVLabProgress();
+      initVLab(); // Түймелерді жаңарту
+    }
+  } else {
+    r.textContent = 'Қате. Бастапқы және түзілген заттардың саны мен құрамын қайта салыстырыңыз.';
+    r.className = 'font-bold text-xs text-rose-600 dark:text-rose-400 mt-2';
+  }
+}
+
+function updateVLabSheet() {
+  const body = document.getElementById('vlabSheetBody');
+  if (!body) return;
+  body.innerHTML = vlabData.map((d, i) => `
+    <tr>
+      <td>${i + 1}</td>
+      <td class="font-mono font-bold">${d.eq}</td>
+      <td>${state.vlabDone.has(i) ? d.start : '—'}</td>
+      <td>${state.vlabDone.has(i) ? d.prod : '—'}</td>
+      <td class="font-bold ${state.vlabDone.has(i) ? 'text-sky-600 dark:text-sky-400' : 'text-slate-400'}">
+        ${state.vlabDone.has(i) ? d.type : '—'}
+      </td>
+    </tr>
+  `).join('');
+}
+
+function updateVLabProgress() {
+  const count = state.vlabDone.size;
+  const bar = document.getElementById('vlabProgressBar');
+  const txt = document.getElementById('vlabStatusText');
+  if (bar) bar.style.width = (count * 25) + '%';
+  if (txt) txt.textContent = `${count}/4 тәжірибе орындалды`;
+}
+
+function resetVLab() {
+  const box = document.getElementById('vlabBox');
+  const flame = document.getElementById('vlabFlame');
+  const visualText = document.getElementById('vlabVisualText');
+  const runBtn = document.getElementById('vlabRunBtn');
+
+  if (box) box.classList.remove('reaction-running', 'has-flame');
+  if (flame) flame.style.display = 'none';
+  if (visualText) visualText.textContent = 'Тәжірибені бастау үшін батырманы басыңыз';
+  if (runBtn) runBtn.disabled = false;
+}
+
+// ======================== ТИПТЕРДІ СҰРЫПТАУ ========================
+
+const sortingEquations = [
+  { id: 'eq1', text: '2Ca + O₂ = 2CaO', type: 'combination' },
+  { id: 'eq2', text: '2KClO₃ = 2KCl + 3O₂↑', type: 'decomposition' },
+  { id: 'eq3', text: '2Al + Fe₂O₃ = Al₂O₃ + 2Fe', type: 'replacement' },
+  { id: 'eq4', text: '2HCl + Na₂S = 2NaCl + H₂S↑', type: 'exchange' },
+  { id: 'eq5', text: 'CaO + H₂O = Ca(OH)₂', type: 'combination' },
+  { id: 'eq6', text: 'CuO + 2HCl = CuCl₂ + H₂O', type: 'exchange' }
+];
+
+let currentSortingPool = [...sortingEquations];
+let sortingBuckets = { combination: [], decomposition: [], replacement: [], exchange: [] };
+
+function renderSortingPool() {
+  const poolEl = document.getElementById('equationPool');
+  if (!poolEl) return;
+  poolEl.innerHTML = '';
+
+  if (currentSortingPool.length === 0) {
+    poolEl.innerHTML = `<div class="col-span-full text-xs text-emerald-600 dark:text-emerald-400 font-bold flex items-center justify-center p-3 bg-emerald-50 dark:bg-emerald-950/40 rounded-xl gap-2"><i class="fa-solid fa-circle-check text-base"></i> Барлық 6 теңдеу дұрыс сұрыпталды! Өте жақсы!</div>`;
+    return;
+  }
+
+  currentSortingPool.forEach(eq => {
+    const card = document.createElement('div');
+    card.className = "p-3 bg-white dark:bg-slate-800 border border-sky-100 dark:border-slate-700 rounded-xl flex flex-col justify-between space-y-2.5 shadow-sm";
+    card.innerHTML = `
+      <div class="font-mono text-center text-xs font-extrabold text-slate-800 dark:text-slate-100 py-1.5 bg-sky-50/50 dark:bg-slate-900 rounded-lg">
+        ${eq.text}
+      </div>
+      <div id="sort-err-${eq.id}" class="hidden text-[10px] text-center font-bold text-rose-600"></div>
+      <div class="grid grid-cols-2 gap-1.5 text-[11px]">
+        <button onclick="selectEquationCategory('${eq.id}', 'combination')" class="py-1 px-2 rounded-lg bg-sky-50 hover:bg-sky-600 hover:text-white dark:bg-slate-700 text-sky-700 dark:text-sky-300 font-bold transition">Қосылу</button>
+        <button onclick="selectEquationCategory('${eq.id}', 'decomposition')" class="py-1 px-2 rounded-lg bg-emerald-50 hover:bg-emerald-600 hover:text-white dark:bg-slate-700 text-emerald-700 dark:text-emerald-300 font-bold transition">Айырылу</button>
+        <button onclick="selectEquationCategory('${eq.id}', 'replacement')" class="py-1 px-2 rounded-lg bg-amber-50 hover:bg-amber-600 hover:text-white dark:bg-slate-700 text-amber-700 dark:text-amber-300 font-bold transition">Орынбасу</button>
+        <button onclick="selectEquationCategory('${eq.id}', 'exchange')" class="py-1 px-2 rounded-lg bg-purple-50 hover:bg-purple-600 hover:text-white dark:bg-slate-700 text-purple-700 dark:text-purple-300 font-bold transition">Алмасу</button>
+      </div>
+    `;
+    poolEl.appendChild(card);
+  });
+
+  renderSortingBuckets();
+}
+
+function selectEquationCategory(eqId, chosenType) {
+  const eq = currentSortingPool.find(i => i.id === eqId);
+  if (!eq) return;
+
+  const errEl = document.getElementById(`sort-err-${eqId}`);
+
+  if (chosenType === eq.type) {
+    sortingBuckets[chosenType].push(eq);
+    currentSortingPool = currentSortingPool.filter(i => i.id !== eqId);
+    state.sortingScore++;
+    document.getElementById('sortScore').innerText = state.sortingScore;
+    renderSortingPool();
+  } else {
+    if (errEl) {
+      errEl.innerText = "Қате! Басқа типін таңдаңыз.";
+      errEl.classList.remove('hidden');
+      setTimeout(() => errEl.classList.add('hidden'), 2000);
+    }
+  }
+}
+
+function renderSortingBuckets() {
+  ['combination', 'decomposition', 'replacement', 'exchange'].forEach(key => {
+    const el = document.getElementById(`bucket-${key}`);
+    if (!el) return;
+    el.innerHTML = '';
+    sortingBuckets[key].forEach(eq => {
+      const item = document.createElement('div');
+      item.className = "p-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-[10px] font-mono flex items-center justify-between";
+      item.innerHTML = `<span>${eq.text}</span> <i class="fa-solid fa-check text-emerald-500"></i>`;
+      el.appendChild(item);
+    });
+  });
+}
+
+function resetSortingGame() {
+  currentSortingPool = [...sortingEquations];
+  sortingBuckets = { combination: [], decomposition: [], replacement: [], exchange: [] };
+  state.sortingScore = 0;
+  document.getElementById('sortScore').innerText = 0;
+  renderSortingPool();
+}
+
+// ======================== ТЕҢЕСТІРУ КОНСТРУКТОРЫ ========================
+
+function setupBalancingListeners() {
+  ['coeff-a', 'coeff-b', 'coeff-c', 'coeff-d'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.addEventListener('input', calculateLiveAtoms);
+      el.addEventListener('change', calculateLiveAtoms);
+    }
+  });
+}
+
+function calculateLiveAtoms() {
+  const a = parseInt(document.getElementById('coeff-a')?.value || '1', 10);
+  const b = parseInt(document.getElementById('coeff-b')?.value || '1', 10);
+  const c = parseInt(document.getElementById('coeff-c')?.value || '1', 10);
+  const d = parseInt(document.getElementById('coeff-d')?.value || '1', 10);
+
+  const left = { fe: a * 1, cl: a * 3, na: b * 1, o: b * 1, h: b * 1 };
+  const right = { fe: d * 1, cl: c * 1, na: c * 1, o: d * 3, h: d * 3 };
+
+  const update = (id, val, isMatch) => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.innerText = val;
+      el.className = `font-mono font-bold ${isMatch ? 'text-emerald-600' : 'text-amber-600'}`;
+    }
+  };
+
+  const feMatch = left.fe === right.fe;
+  const clMatch = left.cl === right.cl;
+  const naMatch = left.na === right.na;
+  const oMatch = left.o === right.o;
+  const hMatch = left.h === right.h;
+
+  update('left-fe', left.fe, feMatch); update('right-fe', right.fe, feMatch);
+  update('left-cl', left.cl, clMatch); update('right-cl', right.cl, clMatch);
+  update('left-na', left.na, naMatch); update('right-na', right.na, naMatch);
+  update('left-o', left.o, oMatch);   update('right-o', right.o, oMatch);
+  update('left-h', left.h, hMatch);   update('right-h', right.h, hMatch);
+
+  return feMatch && clMatch && naMatch && oMatch && hMatch;
+}
+
+function checkBalancingTask() {
+  const isBalanced = calculateLiveAtoms();
+  const selectedType = document.getElementById('user-rxn-type').value;
+  const selectedSum = document.getElementById('user-coeff-sum').value;
+  const feedbackEl = document.getElementById('balancing-feedback');
+
+  if (isBalanced && selectedType === 'exchange' && selectedSum === '8') {
+    state.balancingDone = true;
+    feedbackEl.innerHTML = `
+      <div class="p-4 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-700 rounded-xl space-y-2 text-xs">
+        <div class="font-bold text-emerald-700 dark:text-emerald-300 flex items-center gap-1.5">
+          <i class="fa-solid fa-circle-check text-base"></i> Дұрыс! Тапсырма толығымен орындалды!
+        </div>
+        <p class="text-slate-700 dark:text-slate-300 leading-relaxed">
+          <b>Теңдеу:</b> 1FeCl₃ + 3NaOH → 3NaCl + 1Fe(OH)₃↓<br>
+          <b>Коэффициенттер қосындысы:</b> 1 + 3 + 3 + 1 = 8 (B нұсқасы).<br>
+          <b>Реакция типі:</b> Екі күрделі заттың құрамбөліктері орын алмастырғандықтан — <b>Алмасу реакциясы</b>.
+        </p>
+      </div>
+    `;
+    showToast('Теңестіру тапсырмасы дұрыс орындалды!', 'fa-solid fa-circle-check text-emerald-500');
+  } else {
+    state.balancingDone = false;
+    let hints = [];
+    if (!isBalanced) hints.push("Атомдар саны әлі тең емес. 1FeCl₃ + 3NaOH → 3NaCl + 1Fe(OH)₃ теңестіруін тексеріңіз.");
+    if (selectedType !== 'exchange') hints.push("Реакция типі қате таңдалды (екі зат та күрделі зат).");
+    if (selectedSum !== '8') hints.push("Коэффициенттер қосындысын қайта санаңыз: 1 + 3 + 3 + 1 = 8.");
+
+    feedbackEl.innerHTML = `
+      <div class="p-4 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-700 rounded-xl space-y-2 text-xs">
+        <div class="font-bold text-rose-700 dark:text-rose-300 flex items-center gap-1.5">
+          <i class="fa-solid fa-triangle-exclamation"></i> Тексеруде қате бар:
+        </div>
+        <ul class="list-disc list-inside text-slate-700 dark:text-slate-300 space-y-1">
+          ${hints.map(h => `<li>${h}</li>`).join('')}
+        </ul>
+      </div>
+    `;
   }
 }
 
@@ -614,12 +1316,12 @@ function renderTeacherMatrix(students, tasks) {
 
   students.forEach(st => {
     const tr = document.createElement('tr');
-    tr.className = 'hover:bg-slate-50/50 dark:hover:bg-slate-800/40 transition';
+    tr.className = 'hover:bg-sky-50/40 dark:hover:bg-slate-800/40 transition';
 
     const tdUser = document.createElement('td');
     tdUser.className = 'py-3 px-4 font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2.5';
     tdUser.innerHTML = `
-      <div class="w-6 h-6 rounded-md flex items-center justify-center text-white text-[10px] font-bold" style="background-color: ${st.avatar_color || '#10b981'}">
+      <div class="w-6 h-6 rounded-md flex items-center justify-center text-white text-[10px] font-bold" style="background-color: ${st.avatar_color || '#0284c7'}">
         ${st.name.charAt(0).toUpperCase()}
       </div>
       <span>${st.name}</span>
@@ -672,7 +1374,7 @@ function renderTeacherSubmissionsQueue() {
 
   state.submissions.forEach(sub => {
     const card = document.createElement('div');
-    card.className = 'bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 flex flex-col justify-between space-y-3';
+    card.className = "bg-white dark:bg-slate-900 border border-sky-100 dark:border-slate-800 rounded-2xl p-4 flex flex-col justify-between space-y-3 shadow-sm";
 
     let badgeClass = 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400';
     let badgeText = 'Тексеруді күтуде';
@@ -689,16 +1391,16 @@ function renderTeacherSubmissionsQueue() {
         <div class="flex justify-between items-start mb-2">
           <div>
             <div class="font-extrabold text-sm text-slate-900 dark:text-white">${sub.student_name}</div>
-            <div class="text-[11px] text-slate-400 font-mono">${sub.task_title}</div>
+            <div class="text-[11px] text-sky-600 dark:text-sky-400 font-mono">${sub.task_title}</div>
           </div>
           <span class="text-[10px] font-bold px-2 py-0.5 rounded-full ${badgeClass}">${badgeText}</span>
         </div>
-        <div class="p-3 bg-white dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-mono text-emerald-700 dark:text-emerald-400 whitespace-pre-wrap max-h-28 overflow-y-auto">
+        <div class="p-3 bg-sky-50/50 dark:bg-slate-950 rounded-xl border border-sky-100 dark:border-slate-800 text-xs font-mono text-sky-900 dark:text-sky-300 whitespace-pre-wrap max-h-28 overflow-y-auto">
           ${escapeHtml(sub.answer_text)}
         </div>
         ${sub.teacher_feedback ? `<div class="text-[11px] text-slate-500 mt-2"><strong>Пікір:</strong> ${escapeHtml(sub.teacher_feedback)}</div>` : ''}
       </div>
-      <button onclick="openReviewModal(${sub.id})" class="w-full mt-2 bg-white dark:bg-slate-800 hover:bg-slate-100 border border-slate-200 dark:border-slate-700 py-2 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 transition">
+      <button onclick="openReviewModal(${sub.id})" class="w-full mt-2 bg-sky-50 hover:bg-sky-100 dark:bg-slate-800 dark:hover:bg-slate-700 border border-sky-100 dark:border-slate-700 py-2 rounded-xl text-xs font-bold text-sky-800 dark:text-sky-200 transition">
         ${sub.status === 'submitted' ? 'Жауапты тексеру' : 'Бағаны өзгерту'}
       </button>
     `;
@@ -750,7 +1452,7 @@ async function saveReview(status) {
     showToast('Баға мен түсініктеме сәтті сақталды!', 'fa-solid fa-circle-check text-emerald-500');
     await loadTasksAndSubmissions();
   } else {
-    console.error("Ошибка сохранения отзыва:", error);
+    console.error("Пікірді сақтау қатесі:", error);
     showToast('Бағаны сақтау қатесі', 'fa-solid fa-triangle-exclamation text-rose-500');
   }
 }
@@ -785,267 +1487,75 @@ async function handleCreateTask(e) {
     showToast('Жаңа тапсырма сәтті қосылды!', 'fa-solid fa-circle-check text-emerald-500');
     await loadTasksAndSubmissions();
   } else {
-    console.error("Ошибка создания задания:", error);
+    console.error("Тапсырманы құру қатесі:", error);
     showToast('Тапсырманы құру қатесі', 'fa-solid fa-triangle-exclamation text-rose-500');
   }
 }
 
-// ======================== ИНТЕРАКТИВТІ СИМУЛЯЦИЯ ========================
+// ======================== МҰҒАЛІМ: ПАРАГРАФТЫ АВТОМАТТАНДЫРУ ========================
 
-let selectedReaction = 'CuS';
-
-function changeReaction() {
-  selectedReaction = document.getElementById('reactionSelect').value;
-  const title = document.getElementById('currentReactionTitle');
-  const r1Label = document.getElementById('r1-label');
-  const r2Label = document.getElementById('r2-label');
-
-  if (selectedReaction === 'CuS') {
-    title.innerText = 'Cu + S = CuS (Мыс сульфиді)';
-    r1Label.innerText = '1-реагент: Мыс (Cu)';
-    r2Label.innerText = '2-реагент: Күкірт (S)';
-  } else if (selectedReaction === 'MgO') {
-    title.innerText = '2Mg + O₂ = 2MgO (Магний оксиді)';
-    r1Label.innerText = '1-реагент: Магний (Mg)';
-    r2Label.innerText = '2-реагент: Оттек (O₂)';
-  } else if (selectedReaction === 'H2O') {
-    title.innerText = '2H₂ + O₂ = 2H₂O (Су синтезі)';
-    r1Label.innerText = '1-реагент: Сутек (H₂)';
-    r2Label.innerText = '2-реагент: Оттек (O₂)';
-  } else if (selectedReaction === 'FeCl3') {
-    title.innerText = '2Fe + 3Cl₂ = 2FeCl₃ (Темір(III) хлориді)';
-    r1Label.innerText = '1-реагент: Темір (Fe)';
-    r2Label.innerText = '2-реагент: Хлор (Cl₂)';
-  } else if (selectedReaction === 'Al2S3') {
-    title.innerText = '2Al + 3S = Al₂S₃ (Алюминий сульфиді)';
-    r1Label.innerText = '1-реагент: Алюминий (Al)';
-    r2Label.innerText = '2-реагент: Күкірт (S)';
-  }
-
-  resetSim();
+function openNewParagraphModal() {
+  const modal = document.getElementById('newParagraphModal');
+  if (modal) modal.classList.remove('hidden');
 }
 
-function updateSimInputs() {
-  const v1 = parseFloat(document.getElementById('r1-slider').value);
-  const v2 = parseFloat(document.getElementById('r2-slider').value);
+function closeNewParagraphModal() {
+  const modal = document.getElementById('newParagraphModal');
+  if (modal) modal.classList.add('hidden');
+}
 
-  document.getElementById('r1-val').innerText = `${v1.toFixed(2)} г`;
-  document.getElementById('r2-val').innerText = `${v2.toFixed(2)} г`;
+function fillParagraphTemplate(topic) {
+  if (topic === 'hydrogen') {
+    document.getElementById('newParaTitle').value = '§10. Сутек — химиялық элемент және жай зат';
+    document.getElementById('paraTask1Title').value = '1-тапсырма (А-деңгейі). Сутекті алу реакциялары';
+    document.getElementById('paraTask1Desc').value = 'Мырыш пен тұз қышқылының әрекеттесу реакциясының теңдеуін жазып, теңестіріңіз және реакция типін анықтаңыз: Zn + HCl → ? + ?';
+    document.getElementById('paraTask2Title').value = '2-тапсырма (В-деңгейі). Сутектің тотықсыздандырғыш қасиеті';
+    document.getElementById('paraTask2Desc').value = 'Мыс(II) оксидінен таза мысты сутекпен тотықсыздандыру реакциясы теңдеуін құрыңыз: CuO + H₂ → ? + ?';
+    document.getElementById('paraTask3Title').value = '3-тапсырма (С-деңгейі). Сутекті жағу және реакция жылуы';
+    document.getElementById('paraTask3Desc').value = 'Сутектің оттекте жану реакциясы теңдеуін жазып, 4 г сутек жанғанда түзілетін судың массасын есептеңіз.';
+  } else if (topic === 'water') {
+    document.getElementById('newParaTitle').value = '§11. Су — еріткіш. Ерітінділер';
+    document.getElementById('paraTask1Title').value = '1-тапсырма (А-деңгейі). Судың физикалық қасиеттері';
+    document.getElementById('paraTask1Desc').value = 'Судың қайнау және қату температурасын, агрегаттық күйлерін және химиялық формуласын сипаттаңыз.';
+    document.getElementById('paraTask2Title').value = '2-тапсырма (В-деңгейі). Судың металдармен әрекеттесуі';
+    document.getElementById('paraTask2Desc').value = 'Натрий мен судың әрекеттесу теңдеуін жазып, теңестіріңіз: Na + H₂O → NaOH + H₂↑';
+    document.getElementById('paraTask3Title').value = '3-тапсырма (С-деңгейі). Ерітіндідегі еріген заттың массалық үлесі';
+    document.getElementById('paraTask3Desc').value = '180 г суға 20 г ас тұзын (NaCl) еріткенде түзілген ерітіндідегі тұздың массалық үлесін (ω, %) табыңыз.';
+  }
+}
 
-  const total = (v1 + v2).toFixed(2);
-  document.getElementById('scale-display').innerHTML = `${total} <span class="text-xl text-emerald-500">г</span>`;
-  document.getElementById('status-badge').className = 'w-3.5 h-3.5 rounded-full bg-amber-400 animate-pulse';
-  document.getElementById('status-text').innerText = 'Дайын: Қыздыруды күтуде';
-  document.getElementById('flame-container').classList.add('hidden');
+async function handleCreateParagraph(e) {
+  e.preventDefault();
+  const paraTitle = document.getElementById('newParaTitle').value.trim();
+  const t1Title = document.getElementById('paraTask1Title').value.trim();
+  const t1Desc = document.getElementById('paraTask1Desc').value.trim();
+  const t2Title = document.getElementById('paraTask2Title').value.trim();
+  const t2Desc = document.getElementById('paraTask2Desc').value.trim();
+  const t3Title = document.getElementById('paraTask3Title').value.trim();
+  const t3Desc = document.getElementById('paraTask3Desc').value.trim();
 
-  const l1 = document.getElementById('substance-layer-1');
-  const l2 = document.getElementById('substance-layer-2');
-  const t1 = document.getElementById('substance-layer-1-text');
-  const t2 = document.getElementById('substance-layer-2-text');
+  if (!paraTitle || !t1Title || !t2Title || !t3Title) {
+    alert('Барлық өрістерді толтырыңыз!');
+    return;
+  }
 
-  if (selectedReaction === 'CuS') {
-    l1.className = 'w-full bg-amber-700/80 transition-all duration-1000 flex items-center justify-center text-[10px] text-white';
-    l2.className = 'w-full bg-yellow-400/90 transition-all duration-1000 flex items-center justify-center text-[10px] text-slate-900';
-    t1.innerText = `Cu (${v1}г)`;
-    t2.innerText = `S (${v2}г)`;
-  } else if (selectedReaction === 'MgO') {
-    l1.className = 'w-full bg-slate-400/80 transition-all duration-1000 flex items-center justify-center text-[10px] text-slate-900';
-    l2.className = 'w-full bg-sky-300/60 transition-all duration-1000 flex items-center justify-center text-[10px] text-slate-900';
-    t1.innerText = `Mg (${v1}г)`;
-    t2.innerText = `O₂ (${v2}г)`;
+  const tasksToInsert = [
+    { title: t1Title, category: paraTitle, description: t1Desc, formula_hint: 'А-деңгейі' },
+    { title: t2Title, category: paraTitle, description: t2Desc, formula_hint: 'В-деңгейі' },
+    { title: t3Title, category: paraTitle, description: t3Desc, formula_hint: 'С-деңгейі' }
+  ];
+
+  const { error } = await sb.from('tasks').insert(tasksToInsert);
+
+  if (!error) {
+    closeNewParagraphModal();
+    document.getElementById('newParagraphForm').reset();
+    showToast(`Жаңа параграф сәтті қосылды: "${paraTitle}"!`, 'fa-solid fa-book-bookmark text-emerald-500');
+    await loadTasksAndSubmissions();
   } else {
-    l1.className = 'w-full bg-indigo-500/50 transition-all duration-1000 flex items-center justify-center text-[10px] text-white';
-    l2.className = 'w-full bg-emerald-500/50 transition-all duration-1000 flex items-center justify-center text-[10px] text-white';
-    t1.innerText = `R1 (${v1}г)`;
-    t2.innerText = `R2 (${v2}г)`;
+    console.error("Параграфты сақтау қатесі:", error);
+    showToast('Параграфты сақтауда қате орын алды', 'fa-solid fa-triangle-exclamation text-rose-500');
   }
-}
-
-function resetSim() {
-  document.getElementById('r1-slider').value = 6.4;
-  document.getElementById('r2-slider').value = 3.2;
-  updateSimInputs();
-}
-
-function runReaction() {
-  const m1 = parseFloat(document.getElementById('r1-slider').value);
-  const m2 = parseFloat(document.getElementById('r2-slider').value);
-
-  document.getElementById('flame-container').classList.remove('hidden');
-  document.getElementById('status-badge').className = 'w-3.5 h-3.5 rounded-full bg-red-500 animate-ping';
-  document.getElementById('status-text').innerText = 'Қыздыру және Реакция жүріп жатыр...';
-
-  setTimeout(() => {
-    document.getElementById('flame-container').classList.add('hidden');
-    document.getElementById('status-badge').className = 'w-3.5 h-3.5 rounded-full bg-emerald-500';
-    document.getElementById('status-text').innerText = 'Реакция аяқталды';
-
-    let ratioR1 = 2, ratioR2 = 1, prodName = 'Мыс(II) сульфиді', prodFormula = 'CuS', ratioText = 'm(Cu) : m(S) = 2 : 1';
-
-    if (selectedReaction === 'MgO') {
-      ratioR1 = 3; ratioR2 = 2; prodName = 'Магний оксиді'; prodFormula = 'MgO'; ratioText = 'm(Mg) : m(O) = 3 : 2';
-    } else if (selectedReaction === 'H2O') {
-      ratioR1 = 1; ratioR2 = 8; prodName = 'Су'; prodFormula = 'H₂O'; ratioText = 'm(H) : m(O) = 1 : 8';
-    }
-
-    let neededR2 = (m1 * ratioR2) / ratioR1;
-    let productMass = 0, excessMass = 0, excessSub = '';
-
-    if (m2 >= neededR2) {
-      productMass = m1 + neededR2;
-      excessMass = m2 - neededR2;
-      excessSub = '2-реагент (Артық)';
-    } else {
-      let neededR1 = (m2 * ratioR1) / ratioR2;
-      productMass = m2 + neededR1;
-      excessMass = m1 - neededR1;
-      excessSub = '1-реагент (Артық)';
-    }
-
-    document.getElementById('calc-step-1').innerText = `Теориялық қатынас: ${ratioText}`;
-    document.getElementById('calc-step-2').innerText = `Бастапқы массалар: ${m1}г және ${m2}г. Түзілген өнім ${prodFormula}: ${productMass.toFixed(2)}г`;
-    document.getElementById('calc-step-3').innerText = excessMass > 0.005 ? `Артық қалған зат: ${excessMass.toFixed(2)}г (${excessSub})` : 'Стехиометриялық толық реакция (Артық зат жоқ)';
-
-    const l1 = document.getElementById('substance-layer-1');
-    const l2 = document.getElementById('substance-layer-2');
-    l1.className = 'w-full bg-slate-800 transition-all duration-1000 flex items-center justify-center text-[10px] text-emerald-400 font-bold';
-    l2.className = 'w-full bg-slate-900 transition-all duration-1000 flex items-center justify-center text-[10px] text-slate-400';
-    document.getElementById('substance-layer-1-text').innerText = `${prodFormula} (${productMass.toFixed(2)}г)`;
-    document.getElementById('substance-layer-2-text').innerText = excessMass > 0.005 ? `Артық: ${excessMass.toFixed(2)}г` : 'Толық реакция';
-  }, 1000);
-}
-
-// ======================== МОЛЕКУЛА ИНСПЕКТОРЫ ========================
-
-const compoundsData = {
-  CO2: {
-    formula: 'CO₂', name: 'Көмірқышқыл газы', molar: 44,
-    atomRatio: 'n(C) : n(O) = 1 : 2', massRatio: 'm(C) : m(O) = 12 : 32 = 3 : 8', percentRatio: 'w(C) : w(O) = 27.3% : 72.7%',
-    description: 'Көмірқышқыл газы тыныс алғанда, отын жанғанда түзіледі. Ондағы көміртек пен оттектің массалық қатынасы әрдайым 3 : 8 болады (Пруст заңы).',
-    elements: ['Көміртек (C)', 'Оттек (O)'], percentages: [27.3, 72.7], colors: ['#3b82f6', '#ef4444']
-  },
-  CuS: {
-    formula: 'CuS', name: 'Мыс(II) сульфиді', molar: 96,
-    atomRatio: 'n(Cu) : n(S) = 1 : 1', massRatio: 'm(Cu) : m(S) = 64 : 32 = 2 : 1', percentRatio: 'w(Cu) : w(S) = 66.7% : 33.3%',
-    description: 'Мыс(II) сульфидінде мыс пен күкірттің атомдық қатынасы 1:1, ал массалық қатынасы қатаң түрде 2 : 1 болады.',
-    elements: ['Мыс (Cu)', 'Күкірт (S)'], percentages: [66.7, 33.3], colors: ['#f59e0b', '#10b981']
-  },
-  MgO: {
-    formula: 'MgO', name: 'Магний оксиді', molar: 40,
-    atomRatio: 'n(Mg) : n(O) = 1 : 1', massRatio: 'm(Mg) : m(O) = 24 : 16 = 3 : 2', percentRatio: 'w(Mg) : w(O) = 60.0% : 40.0%',
-    description: 'Магний жанғанда түзілетін магний оксидінде элементтердің массалық қатынасы 3 : 2 құрайды.',
-    elements: ['Магний (Mg)', 'Оттек (O)'], percentages: [60.0, 40.0], colors: ['#8b5cf6', '#ec4899']
-  },
-  SO2: {
-    formula: 'SO₂', name: 'Күкірт(IV) оксиді', molar: 64,
-    atomRatio: 'n(S) : n(O) = 1 : 2', massRatio: 'm(S) : m(O) = 32 : 32 = 1 : 1', percentRatio: 'w(S) : w(O) = 50.0% : 50.0%',
-    description: 'Күкірт(IV) оксидінде күкірт пен оттектің массалары бір-біріне тең (1:1 қатынасы).',
-    elements: ['Күкірт (S)', 'Оттек (O)'], percentages: [50.0, 50.0], colors: ['#eab308', '#3b82f6']
-  },
-  SO3: {
-    formula: 'SO₃', name: 'Күкірт(VI) оксиді', molar: 80,
-    atomRatio: 'n(S) : n(O) = 1 : 3', massRatio: 'm(S) : m(O) = 32 : 48 = 2 : 3', percentRatio: 'w(S) : w(O) = 40.0% : 60.0%',
-    description: 'Күкірт(VI) оксидінде күкірт пен оттек массалары 2 : 3 қатынасында әрекеттеседі.',
-    elements: ['Күкірт (S)', 'Оттек (O)'], percentages: [40.0, 60.0], colors: ['#10b981', '#f43f5e']
-  },
-  FeO: {
-    formula: 'FeO', name: 'Темір(II) оксиді', molar: 72,
-    atomRatio: 'n(Fe) : n(O) = 1 : 1', massRatio: 'm(Fe) : m(O) = 56 : 16 = 7 : 2', percentRatio: 'w(Fe) : w(O) = 77.8% : 22.2%',
-    description: 'Темір(II) оксидіндегі темір мен оттектің массалық қатынасы 7 : 2 құрайды.',
-    elements: ['Темір (Fe)', 'Оттек (O)'], percentages: [77.8, 22.2], colors: ['#b45309', '#38bdf8']
-  },
-  Fe2O3: {
-    formula: 'Fe₂O₃', name: 'Темір(III) оксиді', molar: 160,
-    atomRatio: 'n(Fe) : n(O) = 2 : 3', massRatio: 'm(Fe) : m(O) = 112 : 48 = 7 : 3', percentRatio: 'w(Fe) : w(O) = 70.0% : 30.0%',
-    description: 'Темір(III) оксидінде элементтердің массалық қатынасы 7 : 3 болады.',
-    elements: ['Темір (Fe)', 'Оттек (O)'], percentages: [70.0, 30.0], colors: ['#d97706', '#0284c7']
-  },
-  Al2O3: {
-    formula: 'Al₂O₃', name: 'Алюминий оксиді', molar: 102,
-    atomRatio: 'n(Al) : n(O) = 2 : 3', massRatio: 'm(Al) : m(O) = 54 : 48 = 9 : 8', percentRatio: 'w(Al) : w(O) = 52.9% : 47.1%',
-    description: 'Алюминий оксидінде алюминий мен оттектің массалық қатынасы 9 : 8 болады.',
-    elements: ['Алюминий (Al)', 'Оттек (O)'], percentages: [52.9, 47.1], colors: ['#64748b', '#ef4444']
-  },
-  H2O: {
-    formula: 'H₂O', name: 'Су', molar: 18,
-    atomRatio: 'n(H) : n(O) = 2 : 1', massRatio: 'm(H) : m(O) = 2 : 16 = 1 : 8', percentRatio: 'w(H) : w(O) = 11.1% : 88.9%',
-    description: 'Кез келген таза суда 1 грамм сутекке әрдайым 8 грамм оттек сәйкес келеді.',
-    elements: ['Сутек (H)', 'Оттек (O)'], percentages: [11.1, 88.9], colors: ['#38bdf8', '#2563eb']
-  },
-  P2O5: {
-    formula: 'P₂O₅', name: 'Фосфор(V) оксиді', molar: 142,
-    atomRatio: 'n(P) : n(O) = 2 : 5', massRatio: 'm(P) : m(O) = 62 : 80 = 31 : 40', percentRatio: 'w(P) : w(O) = 43.7% : 56.3%',
-    description: 'Фосфор(V) оксидінде элементтердің массалық қатынасы 31 : 40 тең.',
-    elements: ['Фосфор (P)', 'Оттек (O)'], percentages: [43.7, 56.3], colors: ['#a855f7', '#f97316']
-  },
-  CH4: {
-    formula: 'CH₄', name: 'Метан', molar: 16,
-    atomRatio: 'n(C) : n(H) = 1 : 4', massRatio: 'm(C) : m(H) = 12 : 4 = 3 : 1', percentRatio: 'w(C) : w(H) = 75.0% : 25.0%',
-    description: 'Метан газында әрбір 3 грамм көміртекке 1 грамм сутек сәйкес келеді (3:1 қатынасы).',
-    elements: ['Көміртек (C)', 'Сутек (H)'], percentages: [75.0, 25.0], colors: ['#3b82f6', '#38bdf8']
-  },
-  NH3: {
-    formula: 'NH₃', name: 'Аммиак', molar: 17,
-    atomRatio: 'n(N) : n(H) = 1 : 3', massRatio: 'm(N) : m(H) = 14 : 3', percentRatio: 'w(N) : w(H) = 82.4% : 17.6%',
-    description: 'Аммиак қосылысында азот пен сутектің массалық қатынасы 14 : 3 құрайды.',
-    elements: ['Азот (N)', 'Сутек (H)'], percentages: [82.4, 17.6], colors: ['#6366f1', '#06b6d4']
-  }
-};
-
-let chartInstance = null;
-
-function inspectCompound() {
-  const select = document.getElementById('compoundSelect');
-  if (!select) return;
-  const key = select.value;
-  const data = compoundsData[key];
-  if (!data) return;
-
-  document.getElementById('mol-formula-badge').innerText = data.formula;
-  document.getElementById('mol-name').innerText = data.name;
-  document.getElementById('mol-molar').innerText = `Салыстырмалы молекулалық массасы Mr = ${data.molar}`;
-  document.getElementById('mol-atom-ratio').innerText = data.atomRatio;
-  document.getElementById('mol-mass-ratio').innerText = data.massRatio;
-  document.getElementById('mol-percent-ratio').innerText = data.percentRatio;
-  document.getElementById('mol-description').innerText = data.description;
-
-  const canvas = document.getElementById('massRatioChart');
-  if (!canvas) return;
-  const ctx = canvas.getContext('2d');
-
-  if (chartInstance) {
-    chartInstance.destroy();
-  }
-
-  const isDark = document.documentElement.classList.contains('dark');
-
-  chartInstance = new Chart(ctx, {
-    type: 'doughnut',
-    data: {
-      labels: data.elements,
-      datasets: [{
-        data: data.percentages,
-        backgroundColor: data.colors,
-        borderWidth: 2,
-        borderColor: isDark ? '#1e293b' : '#ffffff'
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { display: false }
-      }
-    }
-  });
-
-  const legendBox = document.getElementById('chartLegend');
-  legendBox.innerHTML = data.elements.map((el, idx) => `
-    <div class="flex items-center space-x-2">
-      <span class="w-3 h-3 rounded-full inline-block" style="background-color: ${data.colors[idx]}"></span>
-      <span class="text-slate-600 dark:text-slate-300 font-mono">${el}: <strong>${data.percentages[idx]}%</strong></span>
-    </div>
-  `).join('');
 }
 
 function escapeHtml(str) {
@@ -1061,8 +1571,11 @@ function escapeHtml(str) {
 
 window.addEventListener('DOMContentLoaded', async () => {
   initTheme();
-  updateSimInputs();
-  inspectCompound();
+  initSim();
+  initVLab();
+  setupBalancingListeners();
+  calculateLiveAtoms();
+  renderSortingPool();
 
   await checkSavedUser();
   initSupabaseRealtime();
