@@ -37,6 +37,45 @@ const DEFAULT_TASKS = [
   }
 ];
 
+// Қолжетімді сыныптар тізімі (Мектеп сыныптары)
+const AVAILABLE_CLASSES = ["7 E", "8 J", "9 I", "9 A", "9 E", "9 D", "10 B", "10 G", "10 E", "11 L", "11 E"];
+
+// Қолданушы метадеректерін оқу (түс, сынып, қорытынды баға, кері байланыс)
+function parseUserMeta(user) {
+  if (!user) return { color: '#0284c7', class_name: '7 E', overall_grade: '', overall_feedback: '' };
+  let color = '#0284c7';
+  let class_name = '7 E';
+  let overall_grade = '';
+  let overall_feedback = '';
+
+  if (user.avatar_color) {
+    if (user.avatar_color.startsWith('{')) {
+      try {
+        const parsed = JSON.parse(user.avatar_color);
+        color = parsed.color || color;
+        class_name = parsed.class_name || class_name;
+        overall_grade = parsed.overall_grade || '';
+        overall_feedback = parsed.overall_feedback || '';
+      } catch (e) {
+        color = user.avatar_color;
+      }
+    } else {
+      color = user.avatar_color;
+    }
+  }
+
+  return { color, class_name, overall_grade, overall_feedback };
+}
+
+function serializeUserMeta(meta) {
+  return JSON.stringify({
+    color: meta.color || '#0284c7',
+    class_name: meta.class_name || '7 E',
+    overall_grade: meta.overall_grade || '',
+    overall_feedback: meta.overall_feedback || ''
+  });
+}
+
 // Глобалды күй
 let state = {
   currentUser: null,
@@ -47,6 +86,7 @@ let state = {
   activeReviewSubId: null,
   theme: 'light',
   soundEnabled: true,
+  teacherSelectedClass: 'all', // 'all', '7 E', '8 J', etc.
 
   // Симуляция және таразы күйі
   simReaction: 'CuS',
@@ -179,13 +219,16 @@ function promptUserChange() {
 
 function toggleTeacherPasswordField() {
   const role = document.getElementById('loginRoleSelect').value;
-  const block = document.getElementById('teacherPasswordBlock');
+  const teacherBlock = document.getElementById('teacherPasswordBlock');
+  const classBlock = document.getElementById('studentClassBlock');
   if (role === 'teacher') {
-    block.classList.remove('hidden');
+    teacherBlock?.classList.remove('hidden');
     document.getElementById('loginTeacherPassword').required = true;
+    classBlock?.classList.add('hidden');
   } else {
-    block.classList.add('hidden');
+    teacherBlock?.classList.add('hidden');
     document.getElementById('loginTeacherPassword').required = false;
+    classBlock?.classList.remove('hidden');
   }
 }
 
@@ -193,6 +236,7 @@ async function handleUserLogin(e) {
   e.preventDefault();
   const name = document.getElementById('loginNameInput').value.trim();
   const role = document.getElementById('loginRoleSelect').value;
+  const selectedClass = document.getElementById('loginStudentClass')?.value || '7 E';
 
   if (!name) return;
 
@@ -213,10 +257,27 @@ async function handleUserLogin(e) {
 
   if (existingUser) {
     user = existingUser;
+    // If student logged in, ensure class is assigned
+    if (role === 'student') {
+      const meta = parseUserMeta(user);
+      if (!meta.class_name || meta.class_name !== selectedClass) {
+        meta.class_name = selectedClass;
+        const serialized = serializeUserMeta(meta);
+        user.avatar_color = serialized;
+        await sb.from('users').update({ avatar_color: serialized }).eq('id', user.id);
+      }
+    }
   } else {
     const colors = ['#0284c7', '#2563eb', '#10b981', '#f59e0b', '#8b5cf6'];
     const randomColor = colors[Math.floor(Math.random() * colors.length)];
     const newId = (role === 'teacher' ? 'teacher_' : 'stud_') + Math.random().toString(36).substring(2, 9);
+    
+    const metaPayload = role === 'student' ? serializeUserMeta({
+      color: randomColor,
+      class_name: selectedClass,
+      overall_grade: '',
+      overall_feedback: ''
+    }) : randomColor;
 
     const { data: created, error } = await sb
       .from('users')
@@ -224,14 +285,14 @@ async function handleUserLogin(e) {
         id: newId,
         name: name,
         role: role,
-        avatar_color: randomColor
+        avatar_color: metaPayload
       })
       .select()
       .single();
 
     if (error) {
       console.error("Қолданушыны сақтау қатесі:", error);
-      showToast('Қолданушыны сақтау қатесі', 'fa-solid fa-triangle-exclamation text-rose-500');
+      showToast('Қолданушыны сақтау қатесі: ' + error.message, 'fa-solid fa-triangle-exclamation text-rose-500');
       return;
     }
     user = created;
@@ -248,14 +309,42 @@ async function handleUserLogin(e) {
 function applyUserSession() {
   if (!state.currentUser) return;
   const user = state.currentUser;
+  const meta = parseUserMeta(user);
 
   document.getElementById('userNameDisplay').textContent = user.name;
-  document.getElementById('userRoleDisplay').textContent = user.role === 'teacher' ? 'Мұғалім' : 'Оқушы';
+  document.getElementById('userRoleDisplay').textContent = user.role === 'teacher' ? 'Мұғалім' : `Оқушы (${meta.class_name})`;
   document.getElementById('userAvatarDot').textContent = user.name.charAt(0).toUpperCase();
-  document.getElementById('userAvatarDot').style.backgroundColor = user.avatar_color || '#0284c7';
+  document.getElementById('userAvatarDot').style.backgroundColor = meta.color;
+
+  const bannerRole = document.getElementById('bannerRoleLabel');
+  if (bannerRole) bannerRole.textContent = user.role === 'teacher' ? 'Мұғалім:' : 'Оқушы:';
+
+  const bannerClass = document.getElementById('bannerClassBadge');
+  if (bannerClass) {
+    if (user.role === 'student' && meta.class_name) {
+      bannerClass.textContent = meta.class_name;
+      bannerClass.classList.remove('hidden');
+    } else {
+      bannerClass.classList.add('hidden');
+    }
+  }
 
   const bannerName = document.getElementById('bannerStudentName');
   if (bannerName) bannerName.textContent = user.name;
+
+  // Оқушының қорытынды бағасы мен пікірі (мұғалім қойған)
+  const evalCard = document.getElementById('studentOverallEvaluationCard');
+  const evalGradeBadge = document.getElementById('evalStudentGradeBadge');
+  const evalFeedbackText = document.getElementById('evalStudentFeedbackText');
+  if (evalCard) {
+    if (user.role === 'student' && (meta.overall_grade || meta.overall_feedback)) {
+      evalCard.classList.remove('hidden');
+      if (evalGradeBadge) evalGradeBadge.textContent = meta.overall_grade || 'Тексерілді';
+      if (evalFeedbackText) evalFeedbackText.textContent = meta.overall_feedback ? `«${meta.overall_feedback}»` : 'Мұғалім жұмысыңызды бағалады.';
+    } else {
+      evalCard.classList.add('hidden');
+    }
+  }
 
   if (user.role === 'teacher') {
     switchTab('teacher');
@@ -422,9 +511,9 @@ function renderStudentTasksList() {
       if (sub.status === 'submitted') {
         badgeHtml = '<span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400">Тексерілуде</span>';
       } else if (sub.status === 'approved') {
-        badgeHtml = `<span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400">Қабылданды (${sub.score || '5'})</span>`;
+        badgeHtml = '<span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400"><i class="fa-solid fa-check mr-1"></i>Дұрыс</span>';
       } else if (sub.status === 'needs_revision') {
-        badgeHtml = '<span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-100 dark:bg-rose-500/20 text-rose-700 dark:text-rose-400">Өңдеуге</span>';
+        badgeHtml = '<span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-100 dark:bg-rose-500/20 text-rose-700 dark:text-rose-400"><i class="fa-solid fa-rotate-left mr-1"></i>Өңдеуге</span>';
       }
     }
 
@@ -489,28 +578,28 @@ function displayTaskDetails(task) {
     answerInput.value = mySub.answer_text;
     if (mySub.status === 'approved') {
       statusBadge.className = 'text-xs font-bold px-3 py-1 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300';
-      statusBadge.textContent = `Қабылданды: ${mySub.score || '5'} ұпай`;
+      statusBadge.textContent = '✓ Дұрыс орындалды';
 
       feedbackCard.classList.remove('hidden');
       feedbackCard.className = 'p-4 rounded-2xl border bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-500/30 text-emerald-900 dark:text-emerald-200';
-      document.getElementById('feedbackScorePill').className = 'text-xs font-bold px-2.5 py-0.5 rounded-lg font-mono bg-emerald-200 text-emerald-800 dark:bg-emerald-500/30 dark:text-emerald-200';
-      document.getElementById('feedbackScorePill').textContent = `Баға: ${mySub.score || 5}`;
+      document.getElementById('feedbackScorePill').className = 'text-xs font-bold px-2.5 py-0.5 rounded-lg bg-emerald-200 text-emerald-800 dark:bg-emerald-500/30 dark:text-emerald-200';
+      document.getElementById('feedbackScorePill').textContent = '✓ Дұрыс';
       document.getElementById('feedbackTextDisplay').textContent = mySub.teacher_feedback || 'Жарайсың! Шешім қабылданды.';
 
       submitBtn.innerHTML = '<i class="fa-solid fa-rotate mr-1"></i> <span>Жаңартылған жауапты қайта жіберу</span>';
-      hintMsg.textContent = 'Жұмыс мұғалім тарапынан қабылданған.';
+      hintMsg.textContent = 'Тапсырма мұғалім тарапынан «Дұрыс» деп қабылданды.';
     } else if (mySub.status === 'needs_revision') {
       statusBadge.className = 'text-xs font-bold px-3 py-1 rounded-full bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300';
-      statusBadge.textContent = 'Өңдеуді қажет етеді';
+      statusBadge.textContent = '↺ Өңдеуге жіберілді';
 
       feedbackCard.classList.remove('hidden');
       feedbackCard.className = 'p-4 rounded-2xl border bg-rose-50 dark:bg-rose-950/30 border-rose-200 dark:border-rose-500/30 text-rose-900 dark:text-rose-200';
-      document.getElementById('feedbackScorePill').className = 'text-xs font-bold px-2.5 py-0.5 rounded-lg font-mono bg-rose-200 text-rose-800 dark:bg-rose-500/30 dark:text-rose-200';
+      document.getElementById('feedbackScorePill').className = 'text-xs font-bold px-2.5 py-0.5 rounded-lg bg-rose-200 text-rose-800 dark:bg-rose-500/30 dark:text-rose-200';
       document.getElementById('feedbackScorePill').textContent = 'Өңдеуге';
       document.getElementById('feedbackTextDisplay').textContent = mySub.teacher_feedback || 'Қателіктерді түзетіп, қайта жіберіңіз.';
 
       submitBtn.innerHTML = '<i class="fa-solid fa-paper-plane mr-1"></i> <span>Түзетілген шешімді жіберу</span>';
-      hintMsg.textContent = 'Мұғалім жұмыстың өңделуін күтуде.';
+      hintMsg.textContent = 'Мұғалім тапсырманы өңдеуге қайтарды.';
     } else {
       statusBadge.className = 'text-xs font-bold px-3 py-1 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300';
       statusBadge.textContent = 'Мұғалімнің тексеруінде';
@@ -1268,13 +1357,25 @@ function checkBalancingTask() {
 // ======================== МҰҒАЛІМ ПАНЕЛІ ========================
 
 function renderTeacherDashboard() {
-  const students = state.users.filter(u => u.role === 'student');
+  const allStudents = state.users.filter(u => u.role === 'student');
+  const selectedClass = state.teacherSelectedClass || 'all';
+
+  // Сынып бойынша оқушыларды сүзу
+  const filteredStudents = selectedClass === 'all'
+    ? allStudents
+    : allStudents.filter(st => parseUserMeta(st).class_name === selectedClass);
+
   const tasks = state.tasks;
-  const pendingCount = state.submissions.filter(s => s.status === 'submitted').length;
-  const approvedCount = state.submissions.filter(s => s.status === 'approved').length;
+  const studentIds = new Set(filteredStudents.map(s => s.id));
+  const classSubmissions = state.submissions.filter(s => studentIds.has(s.student_id));
+
+  const pendingCount = classSubmissions.filter(s => s.status === 'submitted').length;
+  const approvedCount = classSubmissions.filter(s => s.status === 'approved').length;
 
   const sTot = document.getElementById('statTotalStudents');
-  if (sTot) sTot.textContent = students.length;
+  if (sTot) {
+    sTot.textContent = selectedClass === 'all' ? allStudents.length : `${filteredStudents.length} (${selectedClass})`;
+  }
   const tTot = document.getElementById('statTotalTasks');
   if (tTot) tTot.textContent = tasks.length;
   const pTot = document.getElementById('statPendingReviews');
@@ -1292,8 +1393,55 @@ function renderTeacherDashboard() {
     }
   }
 
-  renderTeacherMatrix(students, tasks);
-  renderTeacherSubmissionsQueue();
+  // Сынып сүзгісі мен батырмаларын жаңарту
+  renderTeacherClassFilters(allStudents, selectedClass);
+
+  // Мониторинг кестесі мен кезек тізімін сынып бойынша шығару
+  renderTeacherMatrix(filteredStudents, tasks);
+  renderTeacherSubmissionsQueue(filteredStudents);
+}
+
+function renderTeacherClassFilters(allStudents, selectedClass) {
+  const sel = document.getElementById('teacherClassSelect');
+  if (sel && sel.value !== selectedClass) {
+    sel.value = selectedClass;
+  }
+
+  const badge = document.getElementById('teacherClassCountBadge');
+  if (badge) {
+    const count = selectedClass === 'all' 
+      ? allStudents.length 
+      : allStudents.filter(st => parseUserMeta(st).class_name === selectedClass).length;
+    badge.innerHTML = `Көрсетілуде: <span class="font-bold text-sky-600 dark:text-sky-400 font-mono">${count}</span> оқушы`;
+  }
+
+  const pillsContainer = document.getElementById('teacherClassPills');
+  if (!pillsContainer) return;
+  pillsContainer.innerHTML = '';
+
+  const pillClasses = ['all', ...AVAILABLE_CLASSES];
+  pillClasses.forEach(cls => {
+    const isAct = cls === selectedClass;
+    const count = cls === 'all' 
+      ? allStudents.length 
+      : allStudents.filter(st => parseUserMeta(st).class_name === cls).length;
+
+    if (cls !== 'all' && count === 0 && !isAct) return;
+
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = isAct
+      ? 'px-2.5 py-1 rounded-xl bg-sky-600 text-white font-extrabold shadow-sm transition'
+      : 'px-2.5 py-1 rounded-xl bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-sky-50 dark:hover:bg-slate-700 border border-sky-100 dark:border-slate-700 transition';
+    btn.textContent = cls === 'all' ? `Барлығы (${count})` : `${cls} (${count})`;
+    btn.onclick = () => changeTeacherClassFilter(cls);
+    pillsContainer.appendChild(btn);
+  });
+}
+
+function changeTeacherClassFilter(className) {
+  state.teacherSelectedClass = className;
+  renderTeacherDashboard();
 }
 
 function renderTeacherMatrix(students, tasks) {
@@ -1301,56 +1449,90 @@ function renderTeacherMatrix(students, tasks) {
   const body = document.getElementById('teacherMatrixBody');
   if (!header || !body) return;
 
-  header.innerHTML = '<th class="py-3 px-4">Оқушы</th>';
+  header.innerHTML = '<th class="py-3 px-4 min-w-[160px]">Оқушы (Сынып)</th>';
   tasks.forEach(t => {
     const th = document.createElement('th');
-    th.className = 'py-3 px-3 text-center';
-    th.textContent = t.title.length > 20 ? t.title.slice(0, 18) + '...' : t.title;
+    th.className = 'py-3 px-2 text-center min-w-[100px]';
+    th.textContent = t.title.length > 18 ? t.title.slice(0, 16) + '...' : t.title;
     th.title = t.title;
     header.appendChild(th);
   });
 
+  const thGrade = document.createElement('th');
+  thGrade.className = 'py-3 px-3 text-center min-w-[120px] text-sky-700 dark:text-sky-300';
+  thGrade.innerHTML = '<i class="fa-solid fa-star text-amber-400 mr-1"></i> Қорытынды баға';
+  header.appendChild(thGrade);
+
+  const thFeedback = document.createElement('th');
+  thFeedback.className = 'py-3 px-3 text-left min-w-[210px] text-sky-700 dark:text-sky-300';
+  thFeedback.innerHTML = '<i class="fa-solid fa-comment-dots text-sky-500 mr-1"></i> Мұғалімнің кері байланысы';
+  header.appendChild(thFeedback);
+
+  const thAction = document.createElement('th');
+  thAction.className = 'py-3 px-2 text-center w-10';
+  header.appendChild(thAction);
+
   body.innerHTML = '';
+  if (students.length === 0) {
+    const trEmpty = document.createElement('tr');
+    trEmpty.innerHTML = `
+      <td colspan="${tasks.length + 4}" class="py-8 text-center text-slate-400 text-xs">
+        <i class="fa-solid fa-users-slash text-2xl text-slate-300 dark:text-slate-600 mb-2 block"></i>
+        ${state.teacherSelectedClass && state.teacherSelectedClass !== 'all' ? `«${state.teacherSelectedClass}» сыныбында әзірге тіркелген оқушылар жоқ.` : 'Оқушылар тізімі бос.'}
+      </td>
+    `;
+    body.appendChild(trEmpty);
+    return;
+  }
+
   const subMap = {};
   state.submissions.forEach(s => subMap[`${s.student_id}_${s.task_id}`] = s);
 
   students.forEach(st => {
+    const meta = parseUserMeta(st);
     const tr = document.createElement('tr');
-    tr.className = 'hover:bg-sky-50/40 dark:hover:bg-slate-800/40 transition';
+    tr.className = 'hover:bg-sky-50/40 dark:hover:bg-slate-800/40 transition border-b border-sky-50 dark:border-slate-800/50';
 
     const tdUser = document.createElement('td');
-    tdUser.className = 'py-3 px-4 font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2.5';
+    tdUser.className = 'py-3 px-4 font-bold text-slate-800 dark:text-slate-200';
     tdUser.innerHTML = `
-      <div class="w-6 h-6 rounded-md flex items-center justify-center text-white text-[10px] font-bold" style="background-color: ${st.avatar_color || '#0284c7'}">
-        ${st.name.charAt(0).toUpperCase()}
+      <div class="flex items-center gap-2">
+        <div class="w-7 h-7 rounded-lg flex-shrink-0 flex items-center justify-center text-white text-[11px] font-bold shadow-sm" style="background-color: ${meta.color}">
+          ${st.name.charAt(0).toUpperCase()}
+        </div>
+        <div class="min-w-0">
+          <div class="truncate text-xs font-bold leading-tight">${escapeHtml(st.name)}</div>
+          <span class="inline-block text-[10px] font-extrabold px-1.5 py-0.2 rounded bg-sky-100 text-sky-700 dark:bg-sky-950 dark:text-sky-300 font-mono">${meta.class_name || '—'}</span>
+        </div>
       </div>
-      <span>${st.name}</span>
     `;
     tr.appendChild(tdUser);
 
     tasks.forEach(t => {
       const td = document.createElement('td');
-      td.className = 'py-3 px-3 text-center';
+      td.className = 'py-3 px-2 text-center';
       const sub = subMap[`${st.id}_${t.id}`];
 
       if (!sub) {
         td.innerHTML = '<span class="inline-block text-slate-300 dark:text-slate-600 font-bold">—</span>';
       } else if (sub.status === 'submitted') {
         const btn = document.createElement('button');
-        btn.className = 'px-2.5 py-1 rounded-lg text-[10px] font-bold bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300 border border-amber-300 animate-pulse';
+        btn.className = 'px-2 py-1 rounded-lg text-[10px] font-bold bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300 border border-amber-300 animate-pulse';
         btn.textContent = 'Тексеру';
         btn.onclick = () => openReviewModal(sub.id);
         td.appendChild(btn);
       } else if (sub.status === 'approved') {
         const btn = document.createElement('button');
-        btn.className = 'px-2.5 py-1 rounded-lg text-[10px] font-bold bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300 border border-emerald-300';
-        btn.textContent = `Қабылданды (${sub.score || '5'})`;
+        btn.className = 'px-2 py-1 rounded-lg text-[10px] font-bold bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300 border border-emerald-300 inline-flex items-center gap-1';
+        btn.innerHTML = '<i class="fa-solid fa-check"></i> <span>Дұрыс</span>';
+        btn.title = 'Қайта қарау';
         btn.onclick = () => openReviewModal(sub.id);
         td.appendChild(btn);
       } else if (sub.status === 'needs_revision') {
         const btn = document.createElement('button');
-        btn.className = 'px-2.5 py-1 rounded-lg text-[10px] font-bold bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300 border border-rose-300';
-        btn.textContent = 'Өңдеуге';
+        btn.className = 'px-2 py-1 rounded-lg text-[10px] font-bold bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300 border border-rose-300 inline-flex items-center gap-1';
+        btn.innerHTML = '<i class="fa-solid fa-rotate-left"></i> <span>Өңдеуге</span>';
+        btn.title = 'Қайта қарау';
         btn.onclick = () => openReviewModal(sub.id);
         td.appendChild(btn);
       }
@@ -1358,21 +1540,158 @@ function renderTeacherMatrix(students, tasks) {
       tr.appendChild(td);
     });
 
+    // Қорытынды баға
+    const tdGrade = document.createElement('td');
+    tdGrade.className = 'py-3 px-2 text-center';
+    tdGrade.innerHTML = `
+      <select onchange="updateStudentGradeDirect('${st.id}', this.value)" class="bg-white dark:bg-slate-900 border border-sky-200 dark:border-slate-700 rounded-lg px-2 py-1 text-xs font-bold text-sky-800 dark:text-sky-200 focus:ring-1 focus:ring-sky-500 cursor-pointer shadow-sm">
+        <option value="" ${!meta.overall_grade ? 'selected' : ''}>—</option>
+        <option value="5" ${meta.overall_grade === '5' ? 'selected' : ''}>5 (Өте жақсы)</option>
+        <option value="4" ${meta.overall_grade === '4' ? 'selected' : ''}>4 (Жақсы)</option>
+        <option value="3" ${meta.overall_grade === '3' ? 'selected' : ''}>3 (Қанағат)</option>
+        <option value="2" ${meta.overall_grade === '2' ? 'selected' : ''}>2 (Нашар)</option>
+      </select>
+    `;
+    tr.appendChild(tdGrade);
+
+    // Мұғалімнің кері байланысы
+    const tdFeedback = document.createElement('td');
+    tdFeedback.className = 'py-3 px-2';
+    tdFeedback.innerHTML = `
+      <div class="flex items-center gap-1">
+        <input type="text" id="feedbackInput_${st.id}" value="${escapeHtml(meta.overall_feedback)}" placeholder="Оқушыға пікір..." onchange="updateStudentFeedbackDirect('${st.id}', this.value)" class="w-full bg-white dark:bg-slate-900 border border-sky-200 dark:border-slate-700 rounded-lg px-2 py-1 text-xs text-slate-700 dark:text-slate-300 focus:ring-1 focus:ring-sky-500">
+        <button onclick="saveStudentGradeAndFeedback('${st.id}')" title="Сақтау" class="p-1.5 text-sky-600 hover:text-sky-700 hover:bg-sky-50 dark:hover:bg-slate-800 rounded-lg transition text-xs font-bold">
+          <i class="fa-solid fa-floppy-disk"></i>
+        </button>
+      </div>
+    `;
+    tr.appendChild(tdFeedback);
+
+    // Өшіру
+    const tdAction = document.createElement('td');
+    tdAction.className = 'py-3 px-2 text-center';
+    tdAction.innerHTML = `
+      <button onclick="deleteStudent('${st.id}', '${escapeHtml(st.name)}')" title="Оқушыны өшіру" class="opacity-40 hover:opacity-100 hover:text-rose-600 transition p-1 text-xs">
+        <i class="fa-solid fa-trash-can"></i>
+      </button>
+    `;
+    tr.appendChild(tdAction);
+
     body.appendChild(tr);
   });
 }
 
-function renderTeacherSubmissionsQueue() {
+async function updateStudentGradeDirect(studentId, grade) {
+  const student = state.users.find(u => u.id === studentId);
+  if (!student) return;
+  const meta = parseUserMeta(student);
+  meta.overall_grade = grade;
+  const newAvatarColor = serializeUserMeta(meta);
+  student.avatar_color = newAvatarColor;
+
+  const { error } = await sb
+    .from('users')
+    .update({ avatar_color: newAvatarColor })
+    .eq('id', studentId);
+
+  if (!error) {
+    showToast(`«${student.name}» қорытынды бағасы қойылды: ${grade || '—'}`, 'fa-solid fa-star text-amber-500');
+  }
+}
+
+async function updateStudentFeedbackDirect(studentId, feedback) {
+  const student = state.users.find(u => u.id === studentId);
+  if (!student) return;
+  const meta = parseUserMeta(student);
+  meta.overall_feedback = feedback;
+  const newAvatarColor = serializeUserMeta(meta);
+  student.avatar_color = newAvatarColor;
+
+  const { error } = await sb
+    .from('users')
+    .update({ avatar_color: newAvatarColor })
+    .eq('id', studentId);
+
+  if (!error) {
+    showToast(`«${student.name}» үшін кері байланыс сақталды!`, 'fa-solid fa-comment-dots text-sky-600');
+  }
+}
+
+async function saveStudentGradeAndFeedback(studentId) {
+  const student = state.users.find(u => u.id === studentId);
+  if (!student) return;
+  const meta = parseUserMeta(student);
+
+  const gradeSelect = document.querySelector(`select[onchange*="${studentId}"]`);
+  const feedbackInput = document.getElementById(`feedbackInput_${studentId}`);
+  if (gradeSelect) meta.overall_grade = gradeSelect.value;
+  if (feedbackInput) meta.overall_feedback = feedbackInput.value.trim();
+
+  const newAvatarColor = serializeUserMeta(meta);
+  student.avatar_color = newAvatarColor;
+
+  const { error } = await sb
+    .from('users')
+    .update({ avatar_color: newAvatarColor })
+    .eq('id', studentId);
+
+  if (!error) {
+    showToast(`«${student.name}» бағасы мен пікірі сәтті сақталды!`, 'fa-solid fa-circle-check text-emerald-500');
+  } else {
+    console.error("Бағаны сақтау қатесі:", error);
+    showToast('Бағаны сақтау қатесі: ' + error.message, 'fa-solid fa-triangle-exclamation text-rose-500');
+  }
+}
+
+async function deleteStudent(studentId, studentName) {
+  if (!confirm(`«${studentName}» оқушысын және оның барлық жауаптарын тізімнен өшіруді растайсыз ба?`)) {
+    return;
+  }
+  try {
+    const { error: subErr } = await sb
+      .from('submissions')
+      .delete()
+      .eq('student_id', studentId);
+
+    if (subErr) {
+      console.warn("Жауаптарды тазарту ескертпесі:", subErr);
+    }
+
+    const { error: userErr } = await sb
+      .from('users')
+      .delete()
+      .eq('id', studentId);
+
+    if (userErr) {
+      showToast('Оқушыны өшіру барысында қате шықты: ' + userErr.message, 'fa-solid fa-triangle-exclamation text-rose-500');
+      return;
+    }
+
+    showToast(`«${studentName}» оқушысы тізімнен өшірілді!`, 'fa-solid fa-trash-can text-sky-600');
+    await loadTasksAndSubmissions();
+  } catch (e) {
+    console.error("deleteStudent error:", e);
+    showToast('Өшіру кезінде қате орын алды', 'fa-solid fa-triangle-exclamation text-rose-500');
+  }
+}
+
+function renderTeacherSubmissionsQueue(filteredStudents) {
   const container = document.getElementById('teacherSubmissionsList');
   if (!container) return;
   container.innerHTML = '';
 
-  if (state.submissions.length === 0) {
+  const studentIds = new Set((filteredStudents || state.users).map(s => s.id));
+  const subs = state.submissions.filter(s => studentIds.has(s.student_id));
+
+  if (subs.length === 0) {
     container.innerHTML = '<div class="col-span-3 text-center py-8 text-slate-400 text-xs">Әзірге өткізілген шешімдер жоқ.</div>';
     return;
   }
 
-  state.submissions.forEach(sub => {
+  subs.forEach(sub => {
+    const stUser = state.users.find(u => u.id === sub.student_id);
+    const meta = parseUserMeta(stUser);
+
     const card = document.createElement('div');
     card.className = "bg-white dark:bg-slate-900 border border-sky-100 dark:border-slate-800 rounded-2xl p-4 flex flex-col justify-between space-y-3 shadow-sm";
 
@@ -1380,28 +1699,31 @@ function renderTeacherSubmissionsQueue() {
     let badgeText = 'Тексеруді күтуде';
     if (sub.status === 'approved') {
       badgeClass = 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400';
-      badgeText = `Қабылданды (${sub.score})`;
+      badgeText = '✓ Дұрыс';
     } else if (sub.status === 'needs_revision') {
       badgeClass = 'bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-400';
-      badgeText = 'Өңдеуге жіберілді';
+      badgeText = '↺ Өңдеуге';
     }
 
     card.innerHTML = `
       <div>
         <div class="flex justify-between items-start mb-2">
           <div>
-            <div class="font-extrabold text-sm text-slate-900 dark:text-white">${sub.student_name}</div>
-            <div class="text-[11px] text-sky-600 dark:text-sky-400 font-mono">${sub.task_title}</div>
+            <div class="flex items-center gap-1.5">
+              <span class="font-extrabold text-sm text-slate-900 dark:text-white">${sub.student_name}</span>
+              <span class="text-[10px] font-bold px-1.5 py-0.2 rounded bg-sky-100 text-sky-700 dark:bg-sky-950 dark:text-sky-300 font-mono">${meta.class_name || '—'}</span>
+            </div>
+            <div class="text-[11px] text-sky-600 dark:text-sky-400 font-mono mt-0.5">${sub.task_title}</div>
           </div>
           <span class="text-[10px] font-bold px-2 py-0.5 rounded-full ${badgeClass}">${badgeText}</span>
         </div>
         <div class="p-3 bg-sky-50/50 dark:bg-slate-950 rounded-xl border border-sky-100 dark:border-slate-800 text-xs font-mono text-sky-900 dark:text-sky-300 whitespace-pre-wrap max-h-28 overflow-y-auto">
           ${escapeHtml(sub.answer_text)}
         </div>
-        ${sub.teacher_feedback ? `<div class="text-[11px] text-slate-500 mt-2"><strong>Пікір:</strong> ${escapeHtml(sub.teacher_feedback)}</div>` : ''}
+        ${sub.teacher_feedback ? `<div class="text-[11px] text-slate-500 mt-2"><strong>Кері байланыс:</strong> ${escapeHtml(sub.teacher_feedback)}</div>` : ''}
       </div>
       <button onclick="openReviewModal(${sub.id})" class="w-full mt-2 bg-sky-50 hover:bg-sky-100 dark:bg-slate-800 dark:hover:bg-slate-700 border border-sky-100 dark:border-slate-700 py-2 rounded-xl text-xs font-bold text-sky-800 dark:text-sky-200 transition">
-        ${sub.status === 'submitted' ? 'Жауапты тексеру' : 'Бағаны өзгерту'}
+        ${sub.status === 'submitted' ? 'Жауапты тексеру' : 'Шешімді өзгерту'}
       </button>
     `;
     container.appendChild(card);
@@ -1417,7 +1739,6 @@ function openReviewModal(subId) {
   document.getElementById('mReviewTaskTitle').textContent = sub.task_title;
   document.getElementById('mReviewAnswerText').textContent = sub.answer_text;
   document.getElementById('mReviewFeedbackText').value = sub.teacher_feedback || '';
-  document.getElementById('mReviewScoreInput').value = sub.score || 5;
 
   document.getElementById('reviewModal').classList.remove('hidden');
 }
@@ -1434,14 +1755,13 @@ function setQuickFeedback(text) {
 
 async function saveReview(status) {
   if (!state.activeReviewSubId) return;
-  const score = parseInt(document.getElementById('mReviewScoreInput').value) || 5;
-  const feedback = document.getElementById('mReviewFeedbackText').value.trim();
+  const feedback = document.getElementById('mReviewFeedbackText')?.value.trim() || '';
 
   const { error } = await sb
     .from('submissions')
     .update({
       status: status,
-      score: score,
+      score: null, // Жеке тапсырмаға баға қойылмайды, тек «Дұрыс» / «Өңдеуге»
       teacher_feedback: feedback,
       reviewed_at: new Date().toISOString()
     })
@@ -1449,11 +1769,12 @@ async function saveReview(status) {
 
   if (!error) {
     closeReviewModal();
-    showToast('Баға мен түсініктеме сәтті сақталды!', 'fa-solid fa-circle-check text-emerald-500');
+    const actionMsg = status === 'approved' ? 'Тапсырма «Дұрыс» деп қабылданды!' : 'Тапсырма өңдеуге жіберілді!';
+    showToast(actionMsg, status === 'approved' ? 'fa-solid fa-circle-check text-emerald-500' : 'fa-solid fa-rotate-left text-rose-500');
     await loadTasksAndSubmissions();
   } else {
-    console.error("Пікірді сақтау қатесі:", error);
-    showToast('Бағаны сақтау қатесі', 'fa-solid fa-triangle-exclamation text-rose-500');
+    console.error("Тексеруді сақтау қатесі:", error);
+    showToast('Тексеруді сақтау қатесі: ' + error.message, 'fa-solid fa-triangle-exclamation text-rose-500');
   }
 }
 
@@ -1567,6 +1888,237 @@ function escapeHtml(str) {
             .replace(/'/g, '&#039;');
 }
 
+// ======================== GEMINI AI ОҚУЛЫҚ ТАЛДАУ ========================
+
+let geminiSelectedFile = null;
+let geminiBase64Data = null;
+let geminiMimeType = null;
+
+function openGeminiAIModal() {
+  const modal = document.getElementById('geminiAIModal');
+  if (modal) {
+    modal.classList.remove('hidden');
+    const savedKey = localStorage.getItem('chemlab_gemini_api_key');
+    const keyInput = document.getElementById('geminiApiKeyInput');
+    if (savedKey && keyInput) {
+      keyInput.value = savedKey;
+    }
+  }
+}
+
+function closeGeminiAIModal() {
+  const modal = document.getElementById('geminiAIModal');
+  if (modal) modal.classList.add('hidden');
+}
+
+function saveGeminiApiKey() {
+  const input = document.getElementById('geminiApiKeyInput');
+  const val = input ? input.value.trim() : '';
+  if (!val) {
+    showToast('API кілтін жазыңыз', 'fa-solid fa-circle-exclamation text-amber-500');
+    return;
+  }
+  localStorage.setItem('chemlab_gemini_api_key', val);
+  showToast('Gemini API кілті сәтті сақталды!', 'fa-solid fa-circle-check text-emerald-500');
+}
+
+function handleGeminiFileSelect(e) {
+  const file = e.target.files && e.target.files[0];
+  if (!file) return;
+
+  geminiSelectedFile = file;
+  geminiMimeType = file.type || 'image/jpeg';
+
+  const reader = new FileReader();
+  reader.onload = (evt) => {
+    const dataUrl = evt.target.result;
+    geminiBase64Data = dataUrl.split(',')[1];
+
+    const previewBox = document.getElementById('geminiImgPreviewBox');
+    const previewImg = document.getElementById('geminiImgPreview');
+    if (previewImg && previewBox) {
+      previewImg.src = dataUrl;
+      previewBox.classList.remove('hidden');
+    }
+  };
+  reader.readAsDataURL(file);
+}
+
+function clearGeminiPhoto() {
+  geminiSelectedFile = null;
+  geminiBase64Data = null;
+  geminiMimeType = null;
+  const fileInput = document.getElementById('geminiFileInput');
+  if (fileInput) fileInput.value = '';
+  const previewBox = document.getElementById('geminiImgPreviewBox');
+  if (previewBox) previewBox.classList.add('hidden');
+  const previewImg = document.getElementById('geminiImgPreview');
+  if (previewImg) previewImg.src = '';
+}
+
+function loadGeminiDemoExample() {
+  document.getElementById('aiGeneratedParaTitle').value = '§12. Оттек және оның қасиеттері. Оксидтер';
+  document.getElementById('aiTask1Title').value = '1-тапсырма (А-деңгейі). Оттекті зертханада алу';
+  document.getElementById('aiTask1Desc').value = 'Калий перманганатын (KMnO₄) қыздыру арқылы оттек алу реакциясының теңдеуін жазып, теңестіріңіз: KMnO₄ → K₂MnO₄ + MnO₂ + O₂↑';
+  document.getElementById('aiTask2Title').value = '2-тапсырма (В-деңгейі). Жай заттардың оттекпен әрекеттесуі';
+  document.getElementById('aiTask2Desc').value = 'Фосфордың (P) оттекте жанып фосфор(V) оксидін түзетін реакциясының теңдеуін құрыңыз: P + O₂ → P₂O₅. Коэффициенттерін қойыңыз және реакция типін анықтаңыз.';
+  document.getElementById('aiTask3Title').value = '3-тапсырма (С-деңгейі). Реакция теңдеуі бойынша есептеу';
+  document.getElementById('aiTask3Desc').value = '12 г көміртек толық жанғанда (C + O₂ → CO₂) жұмсалатын оттектің көлемін (қ.ж., л) есептеңіз. M(C) = 12 г/моль, Vm = 22.4 л/моль.';
+
+  const resBox = document.getElementById('geminiResultBox');
+  if (resBox) resBox.classList.remove('hidden');
+  showToast('Демо үлгісі енгізілді. Қажет болса өзгертіп, сайтқа жариялаңыз!', 'fa-solid fa-wand-magic-sparkles text-purple-600');
+}
+
+async function generateTopicWithGemini() {
+  let apiKey = localStorage.getItem('chemlab_gemini_api_key');
+  const keyInput = document.getElementById('geminiApiKeyInput');
+  if (keyInput && keyInput.value.trim()) {
+    apiKey = keyInput.value.trim();
+    localStorage.setItem('chemlab_gemini_api_key', apiKey);
+  }
+
+  if (!apiKey) {
+    showToast('Алдымен Google Gemini API кілтін енгізіңіз немесе Үлгі көру (Демо) батырмасын басыңыз!', 'fa-solid fa-triangle-exclamation text-amber-500');
+    if (keyInput) keyInput.focus();
+    return;
+  }
+
+  const teacherPrompt = document.getElementById('geminiTeacherPrompt')?.value.trim() || '';
+
+  if (!geminiBase64Data && !teacherPrompt) {
+    showToast('Оқулық фотосын жүктеңіз немесе қосымша тақырыпты жазыңыз!', 'fa-solid fa-image text-amber-500');
+    return;
+  }
+
+  const loadingBox = document.getElementById('geminiLoadingBox');
+  const resultBox = document.getElementById('geminiResultBox');
+  const btn = document.getElementById('btnRunGemini');
+  if (loadingBox) loadingBox.classList.remove('hidden');
+  if (resultBox) resultBox.classList.add('hidden');
+  if (btn) btn.disabled = true;
+
+  const promptText = `
+Сен химия пәнінің тәжірибелі мұғалімісің. 
+Берілген оқулық материалын (сурет немесе тақырып) талдап, қазақ тілінде мектептің 8-сынып бағдарламасына сай 3 деңгейлі жаттығу құрастыр.
+Мұғалімнің қосымша нұсқаулығы: ${teacherPrompt || 'Оқулыққа сәйкес стандартты деңгейлік тапсырмалар дайында'}.
+
+МҰҚИЯТ ТАЛАП:
+1. paragraph_title: "§[нөмірі]. [Тақырып атауы]" форматында болуы керек.
+2. task1_title: "1-тапсырма (А-деңгейі). [Тақырыпша]" (қарапайым ұғымдар, формула, анықтама).
+3. task1_desc: Толық шарт пен тапсырма.
+4. task2_title: "2-тапсырма (В-деңгейі). [Тақырыпша]" (реакция теңдеуін құру, теңестіру).
+5. task2_desc: Толық шарт пен химиялық теңдеулер.
+6. task3_title: "3-тапсырма (С-деңгейі). [Тақырыпша]" (сандық есеп немесе логикалық сұрақ).
+7. task3_desc: Есеп шарты және нақты сұрақ.
+
+Жауапты ТЕК КЕЛЕСІ СТРУКТУРАДАҒЫ ТАЗА JSON ФОРМАТЫНДА қайтар:
+{
+  "paragraph_title": "§... ...",
+  "task1_title": "1-тапсырма (А-деңгейі). ...",
+  "task1_desc": "...",
+  "task2_title": "2-тапсырма (В-деңгейі). ...",
+  "task2_desc": "...",
+  "task3_title": "3-тапсырма (С-деңгейі). ...",
+  "task3_desc": "..."
+}
+`;
+
+  try {
+    const parts = [{ text: promptText }];
+    if (geminiBase64Data) {
+      parts.push({
+        inline_data: {
+          mime_type: geminiMimeType || 'image/jpeg',
+          data: geminiBase64Data
+        }
+      });
+    }
+
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts }],
+        generationConfig: {
+          response_mime_type: 'application/json'
+        }
+      })
+    });
+
+    if (!response.ok) {
+      const errData = await response.json();
+      throw new Error(errData?.error?.message || `HTTP ${response.status}`);
+    }
+
+    const data = await response.json();
+    const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!rawText) throw new Error("Gemini жауап қайтармады");
+
+    let parsed;
+    try {
+      parsed = JSON.parse(rawText);
+    } catch (e) {
+      const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+      if (jsonMatch) parsed = JSON.parse(jsonMatch[0]);
+      else throw new Error("JSON құрылымы оқылмады");
+    }
+
+    document.getElementById('aiGeneratedParaTitle').value = parsed.paragraph_title || '§10. Жаңа тақырып';
+    document.getElementById('aiTask1Title').value = parsed.task1_title || '1-тапсырма (А-деңгейі)';
+    document.getElementById('aiTask1Desc').value = parsed.task1_desc || '';
+    document.getElementById('aiTask2Title').value = parsed.task2_title || '2-тапсырма (В-деңгейі)';
+    document.getElementById('aiTask2Desc').value = parsed.task2_desc || '';
+    document.getElementById('aiTask3Title').value = parsed.task3_title || '3-тапсырма (С-деңгейі)';
+    document.getElementById('aiTask3Desc').value = parsed.task3_desc || '';
+
+    if (resultBox) resultBox.classList.remove('hidden');
+    showToast('Gemini оқулықты сәтті талдап, тапсырмаларды дайындады!', 'fa-solid fa-wand-magic-sparkles text-purple-600');
+  } catch (err) {
+    console.error("Gemini API қатесі:", err);
+    showToast('Gemini API қатесі: ' + err.message, 'fa-solid fa-triangle-exclamation text-rose-500');
+  } finally {
+    if (loadingBox) loadingBox.classList.add('hidden');
+    if (btn) btn.disabled = false;
+  }
+}
+
+async function publishAITasksToSite() {
+  const paraTitle = document.getElementById('aiGeneratedParaTitle').value.trim();
+  const t1Title = document.getElementById('aiTask1Title').value.trim();
+  const t1Desc = document.getElementById('aiTask1Desc').value.trim();
+  const t2Title = document.getElementById('aiTask2Title').value.trim();
+  const t2Desc = document.getElementById('aiTask2Desc').value.trim();
+  const t3Title = document.getElementById('aiTask3Title').value.trim();
+  const t3Desc = document.getElementById('aiTask3Desc').value.trim();
+
+  if (!paraTitle || !t1Title || !t2Title || !t3Title) {
+    alert('Барлық өрістерді толтырыңыз!');
+    return;
+  }
+
+  const tasksToInsert = [
+    { title: t1Title, category: paraTitle, description: t1Desc, formula_hint: 'А-деңгейі' },
+    { title: t2Title, category: paraTitle, description: t2Desc, formula_hint: 'В-деңгейі' },
+    { title: t3Title, category: paraTitle, description: t3Desc, formula_hint: 'С-деңгейі' }
+  ];
+
+  const { error } = await sb.from('tasks').insert(tasksToInsert);
+
+  if (!error) {
+    const bannerTopic = document.getElementById('bannerTopicSubtitle');
+    if (bannerTopic) bannerTopic.textContent = paraTitle;
+
+    closeGeminiAIModal();
+    showToast(`«${paraTitle}» жаңа тақырыбы сайтқа сәтті жарияланды!`, 'fa-solid fa-cloud-arrow-up text-emerald-500');
+    await loadTasksAndSubmissions();
+    switchTab('tasks');
+  } else {
+    console.error("AI тапсырмаларын сақтау қатесі:", error);
+    showToast('Тапсырмаларды сақтау кезінде қате орын алды: ' + error.message, 'fa-solid fa-triangle-exclamation text-rose-500');
+  }
+}
+
 // ======================== ІСКЕ ҚОСУ ========================
 
 window.addEventListener('DOMContentLoaded', async () => {
@@ -1576,6 +2128,12 @@ window.addEventListener('DOMContentLoaded', async () => {
   setupBalancingListeners();
   calculateLiveAtoms();
   renderSortingPool();
+
+  const savedGeminiKey = localStorage.getItem('chemlab_gemini_api_key');
+  const geminiInput = document.getElementById('geminiApiKeyInput');
+  if (savedGeminiKey && geminiInput) {
+    geminiInput.value = savedGeminiKey;
+  }
 
   await checkSavedUser();
   initSupabaseRealtime();
