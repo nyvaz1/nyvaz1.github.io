@@ -380,6 +380,24 @@
           <span id="bannerClassBadge" class="hidden text-[10px] font-extrabold px-1.5 py-0.5 rounded bg-white text-blue-800 font-mono shadow-sm">7 E</span>
         </div>
         <div class="font-bold text-sm text-white" id="bannerStudentName">Оқушы</div>
+        <!-- Мұғалім үшін сынып таңдау селекторы (Басты экранда) -->
+        <div id="teacherGlobalClassBlock" class="hidden mt-1.5 flex items-center justify-end gap-1.5">
+          <label class="text-[10px] font-bold text-white uppercase opacity-90"><i class="fa-solid fa-chalkboard-user mr-1"></i>Сынып:</label>
+          <select id="teacherGlobalClassSelect" onchange="switchTeacherGlobalClass(this.value)" class="bg-white text-slate-800 text-[11px] font-bold rounded-lg px-2 py-0.5 outline-none cursor-pointer shadow-sm">
+            <option value="all">Барлық сыныптар</option>
+            <option value="7 E">7 E</option>
+            <option value="8 J">8 J</option>
+            <option value="9 I">9 I</option>
+            <option value="9 A">9 A</option>
+            <option value="9 E">9 E</option>
+            <option value="9 D">9 D</option>
+            <option value="10 B">10 B</option>
+            <option value="10 G">10 G</option>
+            <option value="10 E">10 E</option>
+            <option value="11 L">11 L</option>
+            <option value="11 E">11 E</option>
+          </select>
+        </div>
       </div>
     </div>
 
@@ -420,6 +438,17 @@
 
             <div id="studentTasksList" class="space-y-2.5 max-h-[580px] overflow-y-auto pr-1">
               <!-- JS арқылы рендеринг -->
+            </div>
+
+            <!-- Бұрынғы тақырыптар архиві батырмасы -->
+            <div class="pt-2 border-t border-sky-100 dark:border-slate-800">
+              <button type="button" onclick="openArchiveTasksModal()" class="w-full py-2.5 px-3 bg-sky-50/70 hover:bg-sky-100 dark:bg-slate-800 dark:hover:bg-slate-700/80 rounded-xl text-xs font-bold text-sky-800 dark:text-sky-300 transition flex items-center justify-between">
+                <span class="flex items-center gap-1.5">
+                  <i class="fa-solid fa-box-archive text-sky-600 dark:text-sky-400"></i>
+                  <span>Бұрынғы тақырыптар архиві</span>
+                </span>
+                <span id="archiveTasksCountBadge" class="bg-sky-200 dark:bg-sky-950 text-sky-800 dark:text-sky-300 px-2 py-0.5 rounded-full text-[10px] font-mono font-bold">0</span>
+              </button>
             </div>
           </div>
         </div>
@@ -544,10 +573,15 @@
 
             <!-- Реакция түрін таңдау -->
             <div class="space-y-1.5">
-              <label class="block text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
-                Реакция түрін таңдаңыз:
-              </label>
-              <select id="simReactionSelect" onchange="changeSimReaction()" class="w-full bg-sky-50/50 dark:bg-slate-900 border border-sky-200 dark:border-slate-700 rounded-xl px-3 py-2.5 text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-500">
+              <div class="flex justify-between items-center">
+                <label class="block text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+                  Реакция түрін таңдаңыз:
+                </label>
+                <button type="button" onclick="openNewParagraphModalWithTab('sim')" class="text-[11px] font-bold text-sky-600 dark:text-sky-400 hover:underline flex items-center gap-1">
+                  <i class="fa-solid fa-plus-circle"></i> Жаңа элемент/реакция
+                </button>
+              </div>
+              <select id="simReactionSelect" onchange="changeSimReaction()" class="w-full bg-sky-50/50 dark:bg-slate-900 border border-sky-200 dark:border-slate-700 rounded-xl px-3 py-2.5 text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-500 cursor-pointer">
                 <option value="CuS">1. Мыс + Күкірт → Мыс(II) сульфиді (Cu + S = CuS)</option>
                 <option value="MgO">2. Магний + Оттек → Магний оксиді (2Mg + O₂ = 2MgO)</option>
                 <option value="H2O">3. Сутек + Оттек → Су синтезі (2H₂ + O₂ = 2H₂O)</option>
@@ -595,12 +629,16 @@
             </div>
 
             <!-- Әрекет түймелері -->
-            <div class="pt-1 flex gap-2.5">
-              <button id="simBtnReact" onclick="runSimReaction()" class="flex-1 bg-gradient-to-r from-blue-600 to-sky-600 hover:from-blue-700 hover:to-sky-700 text-white font-extrabold py-3 px-4 rounded-2xl shadow-md shadow-blue-600/20 active:scale-95 transition flex items-center justify-center gap-2 text-xs sm:text-sm">
+            <div class="pt-1 flex gap-2">
+              <button id="simBtnReact" onclick="runSimReaction()" class="flex-1 bg-gradient-to-r from-blue-600 to-sky-600 hover:from-blue-700 hover:to-sky-700 text-white font-extrabold py-3 px-3 rounded-2xl shadow-md shadow-blue-600/20 active:scale-95 transition flex items-center justify-center gap-2 text-xs sm:text-sm">
                 <i class="fa-solid fa-fire text-amber-300 animate-pulse"></i>
                 <span>Қыздыру және Араластыру</span>
               </button>
-              <button onclick="resetSim()" class="bg-sky-100 hover:bg-sky-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold py-3 px-4 rounded-2xl transition" title="Қайта орнату">
+              <button onclick="shuffleSimElements()" class="px-3.5 bg-purple-100 hover:bg-purple-200 dark:bg-purple-950 dark:hover:bg-purple-900 text-purple-700 dark:text-purple-300 font-bold py-3 rounded-2xl transition flex items-center gap-1 text-xs" title="Элементтерді араластыру / ауыстыру">
+                <i class="fa-solid fa-shuffle"></i>
+                <span class="hidden sm:inline">Араластыру</span>
+              </button>
+              <button onclick="resetSim()" class="bg-sky-100 hover:bg-sky-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold py-3 px-3.5 rounded-2xl transition" title="Қайта орнату">
                 <i class="fa-solid fa-rotate-left"></i>
               </button>
             </div>
@@ -1346,62 +1384,227 @@
     </div>
   </div>
 
-  <!-- 5. Мұғалім жаңа параграф / тақырып қосу терезесі (Автоматтандыру) -->
+  <!-- 5. Мұғалім жаңа параграф / кешенді сабақ қосу терезесі (4 қойындылы басқару) -->
   <div id="newParagraphModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-    <div class="lab-card max-w-xl w-full p-6 sm:p-7 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+    <div class="lab-card max-w-2xl w-full p-6 sm:p-7 shadow-2xl space-y-4 max-h-[92vh] overflow-y-auto">
       <div class="flex justify-between items-center border-b border-sky-100 dark:border-slate-700 pb-3">
         <div>
           <h4 class="text-base font-black text-slate-900 dark:text-white flex items-center gap-2">
-            <i class="fa-solid fa-book-bookmark text-sky-600"></i> Жаңа параграф немесе тақырып қосу
+            <i class="fa-solid fa-layer-group text-sky-600"></i> Сабақты кешенді жаңарту және жаңа тақырып
           </h4>
-          <p class="text-xs text-slate-500">Оқулық параграфы бойынша тапсырмаларды автоматты түрде енгізу</p>
+          <p class="text-xs text-slate-500">Тапсырмаларды, тәжірибе реагенттерін, зертхана мен теңестіруді бірден орнату</p>
         </div>
         <button onclick="closeNewParagraphModal()" class="text-slate-400 hover:text-slate-600 text-lg">
           <i class="fa-solid fa-xmark"></i>
         </button>
       </div>
 
-      <form id="newParagraphForm" onsubmit="handleCreateParagraph(event)" class="space-y-4">
-        <div>
-          <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Параграф нөмірі мен тақырыбы:</label>
-          <input type="text" id="newParaTitle" required placeholder="Мысалы: §10. Сутектің химиялық қасиеттері" class="w-full bg-sky-50/50 dark:bg-slate-900 border border-sky-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-xs font-semibold focus:ring-2 focus:ring-sky-500">
-        </div>
+      <!-- 4 Қойынды (Tabs) -->
+      <div class="flex flex-wrap border-b border-sky-100 dark:border-slate-700 text-xs font-bold gap-1 pb-1">
+        <button type="button" onclick="switchNewTopicTab('tasks')" id="btnNewTopicTab-tasks" class="px-3 py-2 rounded-xl bg-sky-600 text-white transition flex items-center gap-1.5 shadow-sm">
+          <i class="fa-solid fa-list-check"></i> 1. Тапсырмалар
+        </button>
+        <button type="button" onclick="switchNewTopicTab('sim')" id="btnNewTopicTab-sim" class="px-3 py-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-sky-50 dark:hover:bg-slate-800 transition flex items-center gap-1.5">
+          <i class="fa-solid fa-scale-balanced"></i> 2. Тәжірибе
+        </button>
+        <button type="button" onclick="switchNewTopicTab('lab')" id="btnNewTopicTab-lab" class="px-3 py-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-sky-50 dark:hover:bg-slate-800 transition flex items-center gap-1.5">
+          <i class="fa-solid fa-flask-vial"></i> 3. Зертхана
+        </button>
+        <button type="button" onclick="switchNewTopicTab('balance')" id="btnNewTopicTab-balance" class="px-3 py-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-sky-50 dark:hover:bg-slate-800 transition flex items-center gap-1.5">
+          <i class="fa-solid fa-arrows-rotate"></i> 4. Алмасу / Теңестіру
+        </button>
+      </div>
 
-        <div>
-          <div class="flex justify-between items-center mb-1">
-            <label class="text-xs font-bold text-slate-700 dark:text-slate-300">Дайын шаблондар арқылы автоматты толтыру:</label>
-            <div class="flex gap-2">
-              <button type="button" onclick="fillParagraphTemplate('hydrogen')" class="text-[11px] font-bold text-sky-600 dark:text-sky-400 hover:underline">§10 Сутек үлгісі</button>
-              <button type="button" onclick="fillParagraphTemplate('water')" class="text-[11px] font-bold text-sky-600 dark:text-sky-400 hover:underline">§11 Су үлгісі</button>
+      <form id="newParagraphForm" onsubmit="handleCreateParagraph(event)" class="space-y-4">
+        
+        <!-- PANE 1: ТАПСЫРМАЛАР ЖӘНЕ ТАҚЫРЫП -->
+        <div id="newTopicPane-tasks" class="space-y-3">
+          <div class="grid grid-cols-1 sm:grid-cols-12 gap-3">
+            <div class="sm:col-span-8">
+              <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Параграф нөмірі мен тақырыбы:</label>
+              <input type="text" id="newParaTitle" required placeholder="Мысалы: §10. Сутектің химиялық қасиеттері" class="w-full bg-sky-50/50 dark:bg-slate-900 border border-sky-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-sky-500">
+            </div>
+            <div class="sm:col-span-4">
+              <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Сыныпты таңдаңыз:</label>
+              <select id="newParaClass" class="w-full bg-sky-50/50 dark:bg-slate-900 border border-sky-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-bold text-sky-800 dark:text-sky-200 focus:ring-2 focus:ring-sky-500 cursor-pointer">
+                <option value="all">Барлық сыныптар</option>
+                <option value="7 E">7 E</option>
+                <option value="8 J">8 J</option>
+                <option value="9 I">9 I</option>
+                <option value="9 A">9 A</option>
+                <option value="9 E">9 E</option>
+                <option value="9 D">9 D</option>
+                <option value="10 B">10 B</option>
+                <option value="10 G">10 G</option>
+                <option value="10 E">10 E</option>
+                <option value="11 L">11 L</option>
+                <option value="11 E">11 E</option>
+              </select>
             </div>
           </div>
-          <p class="text-[10px] text-slate-400">Төменде параграф бойынша тапсырмалар бірден жасалады және базаға жазылады:</p>
+
+          <!-- Архивке өткізу чекбоксы -->
+          <label class="flex items-center gap-2.5 p-2.5 bg-amber-50/80 dark:bg-slate-900 border border-amber-200 dark:border-slate-800 rounded-xl cursor-pointer text-xs font-semibold text-slate-800 dark:text-slate-200">
+            <input type="checkbox" id="archiveOldTasksCheckbox" checked class="w-4 h-4 rounded text-sky-600 focus:ring-sky-500 cursor-pointer">
+            <span><i class="fa-solid fa-box-archive text-amber-600 mr-1"></i> Бұрынғы тақырыптар мен тапсырмаларды архивке жасыру (Сайтта тек осы жаңа тақырып белсенді болады)</span>
+          </label>
+
+          <div class="flex justify-between items-center text-xs">
+            <span class="font-bold text-slate-500">Дайын шаблондар:</span>
+            <div class="flex gap-2">
+              <button type="button" onclick="fillParagraphTemplate('hydrogen')" class="font-bold text-sky-600 dark:text-sky-400 hover:underline">§10 Сутек үлгісі</button>
+              <button type="button" onclick="fillParagraphTemplate('water')" class="font-bold text-sky-600 dark:text-sky-400 hover:underline">§11 Су үлгісі</button>
+              <button type="button" onclick="fillParagraphTemplate('oxygen')" class="font-bold text-sky-600 dark:text-sky-400 hover:underline">§12 Оттек үлгісі</button>
+            </div>
+          </div>
+
+          <div class="space-y-2.5 p-3 bg-sky-50/40 dark:bg-slate-900/50 rounded-2xl border border-sky-100 dark:border-slate-800">
+            <div>
+              <label class="block text-[11px] font-bold text-sky-700 dark:text-sky-300 mb-0.5">1-тапсырма (А-деңгейі):</label>
+              <input type="text" id="paraTask1Title" required placeholder="Тапсырма тақырыбы..." class="w-full bg-white dark:bg-slate-900 border border-sky-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs mb-1">
+              <textarea id="paraTask1Desc" required rows="2" placeholder="Тапсырма шарты мен сұрағы..." class="w-full bg-white dark:bg-slate-900 border border-sky-200 dark:border-slate-700 rounded-lg p-2 text-xs font-mono"></textarea>
+            </div>
+
+            <div>
+              <label class="block text-[11px] font-bold text-sky-700 dark:text-sky-300 mb-0.5">2-тапсырма (В-деңгейі):</label>
+              <input type="text" id="paraTask2Title" required placeholder="Тапсырма тақырыбы..." class="w-full bg-white dark:bg-slate-900 border border-sky-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs mb-1">
+              <textarea id="paraTask2Desc" required rows="2" placeholder="Тапсырма шарты мен сұрағы..." class="w-full bg-white dark:bg-slate-900 border border-sky-200 dark:border-slate-700 rounded-lg p-2 text-xs font-mono"></textarea>
+            </div>
+
+            <div>
+              <label class="block text-[11px] font-bold text-sky-700 dark:text-sky-300 mb-0.5">3-тапсырма (С-деңгейі):</label>
+              <input type="text" id="paraTask3Title" required placeholder="Тапсырма тақырыбы..." class="w-full bg-white dark:bg-slate-900 border border-sky-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs mb-1">
+              <textarea id="paraTask3Desc" required rows="2" placeholder="Тапсырма шарты мен сұрағы..." class="w-full bg-white dark:bg-slate-900 border border-sky-200 dark:border-slate-700 rounded-lg p-2 text-xs font-mono"></textarea>
+            </div>
+          </div>
         </div>
 
-        <div class="space-y-3 p-3 bg-sky-50/40 dark:bg-slate-900/50 rounded-2xl border border-sky-100 dark:border-slate-800">
-          <div>
-            <label class="block text-[11px] font-bold text-sky-700 dark:text-sky-300 mb-0.5">1-тапсырма (А-деңгейі):</label>
-            <input type="text" id="paraTask1Title" required placeholder="Тапсырма тақырыбы..." class="w-full bg-white dark:bg-slate-900 border border-sky-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs mb-1">
-            <textarea id="paraTask1Desc" required rows="2" placeholder="Тапсырма шарты мен сұрағы..." class="w-full bg-white dark:bg-slate-900 border border-sky-200 dark:border-slate-700 rounded-lg p-2 text-xs"></textarea>
-          </div>
+        <!-- PANE 2: ТӘЖІРИБЕ ЖӘНЕ ЭЛЕМЕНТТЕРДІ АРАЛАСТЫРУ -->
+        <div id="newTopicPane-sim" class="space-y-3 hidden">
+          <div class="p-3 bg-purple-50/50 dark:bg-slate-900/50 rounded-2xl border border-purple-100 dark:border-slate-800 space-y-3">
+            <h5 class="text-xs font-extrabold text-purple-900 dark:text-purple-300 flex items-center gap-1.5">
+              <i class="fa-solid fa-scale-balanced text-purple-600"></i> «Тәжірибе» бөліміндегі жаңа реакция мен элементтер:
+            </h5>
+            
+            <div>
+              <label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">Реакция атауы:</label>
+              <input type="text" id="newSimTitle" placeholder="Мысалы: Мырыш + Тұз қышқылы → Мырыш хлориді (Zn + 2HCl = ZnCl₂ + H₂↑)" class="w-full bg-white dark:bg-slate-950 border border-purple-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-bold text-purple-900 dark:text-purple-200">
+            </div>
 
-          <div>
-            <label class="block text-[11px] font-bold text-sky-700 dark:text-sky-300 mb-0.5">2-тапсырма (В-деңгейі):</label>
-            <input type="text" id="paraTask2Title" required placeholder="Тапсырма тақырыбы..." class="w-full bg-white dark:bg-slate-900 border border-sky-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs mb-1">
-            <textarea id="paraTask2Desc" required rows="2" placeholder="Тапсырма шарты мен сұрағы..." class="w-full bg-white dark:bg-slate-900 border border-sky-200 dark:border-slate-700 rounded-lg p-2 text-xs"></textarea>
-          </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div class="p-2.5 bg-white dark:bg-slate-950 rounded-xl border border-purple-100 dark:border-slate-800 space-y-2">
+                <label class="block text-[11px] font-bold text-purple-700 dark:text-purple-300">1-реагент (Элемент):</label>
+                <input type="text" id="newSimR1Name" placeholder="Мысалы: Мырыш (Zn)" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs font-semibold">
+                <div class="flex gap-2">
+                  <div class="flex-1">
+                    <label class="block text-[10px] text-slate-400">Бастапқы масса (г):</label>
+                    <input type="number" id="newSimR1Default" step="0.1" value="6.5" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1 text-xs font-mono">
+                  </div>
+                  <div class="flex-1">
+                    <label class="block text-[10px] text-slate-400">Қатынас үлесі:</label>
+                    <input type="number" id="newSimRatioR1" step="1" value="65" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1 text-xs font-mono">
+                  </div>
+                </div>
+              </div>
 
-          <div>
-            <label class="block text-[11px] font-bold text-sky-700 dark:text-sky-300 mb-0.5">3-тапсырма (С-деңгейі):</label>
-            <input type="text" id="paraTask3Title" required placeholder="Тапсырма тақырыбы..." class="w-full bg-white dark:bg-slate-900 border border-sky-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs mb-1">
-            <textarea id="paraTask3Desc" required rows="2" placeholder="Тапсырма шарты мен сұрағы..." class="w-full bg-white dark:bg-slate-900 border border-sky-200 dark:border-slate-700 rounded-lg p-2 text-xs"></textarea>
+              <div class="p-2.5 bg-white dark:bg-slate-950 rounded-xl border border-purple-100 dark:border-slate-800 space-y-2">
+                <label class="block text-[11px] font-bold text-purple-700 dark:text-purple-300">2-реагент (Элемент):</label>
+                <input type="text" id="newSimR2Name" placeholder="Мысалы: Тұз қышқылы (HCl)" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs font-semibold">
+                <div class="flex gap-2">
+                  <div class="flex-1">
+                    <label class="block text-[10px] text-slate-400">Бастапқы масса (г):</label>
+                    <input type="number" id="newSimR2Default" step="0.1" value="7.3" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1 text-xs font-mono">
+                  </div>
+                  <div class="flex-1">
+                    <label class="block text-[10px] text-slate-400">Қатынас үлесі:</label>
+                    <input type="number" id="newSimRatioR2" step="1" value="73" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1 text-xs font-mono">
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-0.5">Түзілетін өнім атауы:</label>
+                <input type="text" id="newSimProdName" placeholder="Мысалы: Мырыш хлориді" class="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs font-semibold">
+              </div>
+              <div>
+                <label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-0.5">Өнім формуласы:</label>
+                <input type="text" id="newSimProdFormula" placeholder="Мысалы: ZnCl₂" class="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs font-mono font-bold">
+              </div>
+            </div>
+            
+            <label class="flex items-center gap-2 cursor-pointer text-xs font-bold text-purple-800 dark:text-purple-300">
+              <input type="checkbox" id="activateNewSimCheckbox" checked class="rounded accent-purple-600">
+              <span>Осы жаңа реакцияны бірден «Тәжірибе» тақтасында белсенді ету</span>
+            </label>
           </div>
         </div>
 
-        <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold py-3 rounded-xl text-xs shadow-md transition flex items-center justify-center gap-2">
-          <i class="fa-solid fa-cloud-arrow-up"></i> Параграф тапсырмаларын базаға жүктеу
+        <!-- PANE 3: ЗЕРТХАНА НҰСҚАУЛЫҒЫ -->
+        <div id="newTopicPane-lab" class="space-y-3 hidden">
+          <div class="p-3 bg-emerald-50/50 dark:bg-slate-900/50 rounded-2xl border border-emerald-100 dark:border-slate-800 space-y-3">
+            <h5 class="text-xs font-extrabold text-emerald-900 dark:text-emerald-300 flex items-center gap-1.5">
+              <i class="fa-solid fa-flask-vial text-emerald-600"></i> «Зертхана» бөліміне арналған тәжірибе нұсқаулығы:
+            </h5>
+            <div>
+              <label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-0.5">Эксперимент тақырыбы:</label>
+              <input type="text" id="newLabTitle" placeholder="Мысалы: Сутекті зертханада алу және тазалығын сынау" class="w-full bg-white dark:bg-slate-950 border border-emerald-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-semibold">
+            </div>
+            <div>
+              <label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-0.5">Қажетті құралдар мен реактивтер:</label>
+              <input type="text" id="newLabReagents" placeholder="Мысалы: Мырыш (Zn), Тұз қышқылы (HCl), сынауық, балауыз, спиртшам" class="w-full bg-white dark:bg-slate-950 border border-emerald-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs">
+            </div>
+            <div>
+              <label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-0.5">Жұмыс барысы мен сипаттамасы:</label>
+              <textarea id="newLabSteps" rows="3" placeholder="1. Сынауыққа 2-3 түйір мырыш салыңыз...\n2. Үстіне 2-3 мл сұйылтылған HCl құйыңыз...\n3. Түзілген газды аударылған сынауыққа жинап, тазалығын тексеріңіз..." class="w-full bg-white dark:bg-slate-950 border border-emerald-200 dark:border-slate-700 rounded-xl p-2.5 text-xs font-mono"></textarea>
+            </div>
+          </div>
+        </div>
+
+        <!-- PANE 4: АЛМАСУ ЖӘНЕ ТЕҢЕСТІРУ -->
+        <div id="newTopicPane-balance" class="space-y-3 hidden">
+          <div class="p-3 bg-blue-50/50 dark:bg-slate-900/50 rounded-2xl border border-blue-100 dark:border-slate-800 space-y-3">
+            <h5 class="text-xs font-extrabold text-blue-900 dark:text-blue-300 flex items-center gap-1.5">
+              <i class="fa-solid fa-arrows-rotate text-blue-600"></i> «Алмасу» және «Теңестіру» тапсырмалары:
+            </h5>
+            <div>
+              <label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-0.5">Теңестіруге берілетін теңдеу:</label>
+              <input type="text" id="newBalancingEquation" placeholder="Мысалы: Zn + 2HCl → ZnCl₂ + H₂↑" class="w-full bg-white dark:bg-slate-950 border border-blue-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-mono font-bold">
+            </div>
+            <div>
+              <label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-0.5">Реакцияның негізгі типі:</label>
+              <select id="newBalancingType" class="w-full bg-white dark:bg-slate-950 border border-blue-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-bold">
+                <option value="replacement">Орынбасу реакциясы</option>
+                <option value="exchange">Алмасу реакциясы</option>
+                <option value="combination">Қосылу реакциясы</option>
+                <option value="decomposition">Айырылу реакциясы</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Барлығын бірден сақтау батырмасы -->
+        <button type="submit" class="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-black py-3.5 rounded-xl text-xs sm:text-sm shadow-md transition flex items-center justify-center gap-2">
+          <i class="fa-solid fa-cloud-arrow-up"></i> Сабақты толық жаңартып сайтқа жариялау (Барлық қойындылармен)
         </button>
       </form>
+    </div>
+  </div>
+
+  <!-- Бұрынғы тақырыптар архиві модалі -->
+  <div id="archiveTasksModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="lab-card max-w-2xl w-full p-6 shadow-2xl space-y-4 max-h-[85vh] overflow-y-auto">
+      <div class="flex justify-between items-center border-b border-sky-100 dark:border-slate-700 pb-3">
+        <h4 class="text-base font-black text-slate-900 dark:text-white flex items-center gap-2">
+          <i class="fa-solid fa-box-archive text-sky-600"></i> Бұрынғы тақырыптар мен тапсырмалар архиві
+        </h4>
+        <button onclick="closeArchiveTasksModal()" class="text-slate-400 hover:text-slate-600 text-lg">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <p class="text-xs text-slate-500">Бұрын өтілген сабақтар бойынша тапсырмалар мен нәтижелер:</p>
+      <div id="archiveTasksList" class="space-y-3"></div>
     </div>
   </div>
 
