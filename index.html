@@ -323,6 +323,10 @@
         <button onclick="switchTab('balance')" id="tab-balance" class="tab-pill">
           <i class="fa-solid fa-scale-balanced text-sky-500"></i> Теңестіру
         </button>
+        <button onclick="switchTab('homework')" id="tab-homework" class="tab-pill relative">
+          <i class="fa-solid fa-house-laptop text-amber-500"></i> Үй тапсырмасы
+          <span id="navHomeworkBadge" class="hidden ml-1 px-1.5 py-0.2 text-[10px] bg-amber-500 text-white rounded-full font-bold">Жаңа</span>
+        </button>
         <button onclick="handleTeacherTabClick()" id="tab-teacher" class="tab-pill">
           <i class="fa-solid fa-chalkboard-user text-sky-500"></i> Мұғалім Панелі
           <span id="teacherQueueBadge" class="hidden ml-1 px-1.5 py-0.2 text-[10px] bg-amber-500 text-white rounded-full font-bold">0</span>
@@ -358,6 +362,7 @@
       <button onclick="switchTab('lab')" id="mob-tab-lab" class="px-3 py-1.5 rounded-lg text-slate-600 dark:text-slate-400 whitespace-nowrap font-medium">Зертхана</button>
       <button onclick="switchTab('sorting')" id="mob-tab-sorting" class="px-3 py-1.5 rounded-lg text-slate-600 dark:text-slate-400 whitespace-nowrap font-medium">Сұрыптау</button>
       <button onclick="switchTab('balance')" id="mob-tab-balance" class="px-3 py-1.5 rounded-lg text-slate-600 dark:text-slate-400 whitespace-nowrap font-medium">Теңестіру</button>
+      <button onclick="switchTab('homework')" id="mob-tab-homework" class="px-3 py-1.5 rounded-lg text-slate-600 dark:text-slate-400 whitespace-nowrap font-medium">Үй тапсырмасы</button>
       <button onclick="handleTeacherTabClick()" id="mob-tab-teacher" class="px-3 py-1.5 rounded-lg text-slate-600 dark:text-slate-400 whitespace-nowrap font-medium">Мұғалім</button>
     </div>
   </header>
@@ -401,7 +406,30 @@
       </div>
     </div>
 
-    <!-- Оқушының мұғалімнен алған қорытынды бағасы мен пікірі -->
+    <!-- Үй тапсырмасы туралы жоғарғы ескерту баннері (Оқушыларға қойындылардың астынан/үстінен бірден көрінеді) -->
+    <div id="studentHomeworkTopBanner" class="hidden bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-yellow-500/15 dark:from-amber-950/40 dark:to-slate-900 border border-amber-300 dark:border-amber-700/60 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-sm">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center text-xl font-bold shadow-sm flex-shrink-0">
+          <i class="fa-solid fa-house-laptop"></i>
+        </div>
+        <div>
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="text-xs font-black text-amber-800 dark:text-amber-300 flex items-center gap-1.5">
+              <i class="fa-solid fa-bell text-amber-600 animate-pulse"></i> Үй тапсырмасы:
+            </span>
+            <span id="bannerHwTopic" class="text-[11px] font-bold px-2 py-0.5 rounded-lg bg-amber-100 dark:bg-amber-900/60 text-amber-800 dark:text-amber-200 font-mono">§9. Химиялық реакциялардың типтері</span>
+            <span id="bannerHwDeadline" class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-amber-200 dark:border-slate-700">Мерзімі: Белгіленген</span>
+          </div>
+          <p id="bannerHwText" class="text-xs text-slate-700 dark:text-slate-300 mt-1 font-medium leading-relaxed line-clamp-1">Мұғалім берген үй тапсырмасы...</p>
+        </div>
+      </div>
+      <button onclick="switchTab('homework')" class="px-3.5 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm whitespace-nowrap self-end sm:self-center">
+        <span>Тапсырманы ашу</span>
+        <i class="fa-solid fa-arrow-right"></i>
+      </button>
+    </div>
+
+    <!-- Оқушының мұғалімнен алған қорытынды бағасы мен пікірі (10 баллдық жүйе) -->
     <div id="studentOverallEvaluationCard" class="hidden bg-gradient-to-r from-emerald-500/10 via-sky-500/10 to-blue-500/10 dark:from-emerald-950/40 dark:to-slate-900 border border-emerald-300 dark:border-emerald-700/60 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-sm">
       <div class="flex items-center gap-3">
         <div class="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-900/60 text-emerald-600 dark:text-emerald-300 flex items-center justify-center text-xl font-black">
@@ -409,8 +437,8 @@
         </div>
         <div>
           <div class="flex items-center gap-2">
-            <span class="text-xs font-bold text-slate-700 dark:text-slate-300">Мұғалімнің қорытынды бағасы:</span>
-            <span id="evalStudentGradeBadge" class="text-xs font-black px-2.5 py-0.5 rounded-lg bg-emerald-500 text-white shadow-sm font-mono">5</span>
+            <span class="text-xs font-bold text-slate-700 dark:text-slate-300">Мұғалімнің қорытынды бағасы (10 баллдық жүйе):</span>
+            <span id="evalStudentGradeBadge" class="text-xs font-black px-2.5 py-0.5 rounded-lg bg-emerald-500 text-white shadow-sm font-mono">10 / 10 балл</span>
           </div>
           <div class="text-xs text-slate-600 dark:text-slate-400 mt-0.5 italic" id="evalStudentFeedbackText">«Жарайсың! Сабаққа жақсы қатыстың.»</div>
         </div>
@@ -1087,6 +1115,9 @@
           <button onclick="openGeminiAIModal()" class="bg-gradient-to-r from-purple-600 via-indigo-600 to-sky-600 hover:from-purple-700 hover:to-indigo-700 text-white font-extrabold py-2.5 px-4 rounded-xl text-xs shadow-md transition flex items-center gap-2">
             <i class="fa-solid fa-wand-magic-sparkles text-amber-300"></i> Gemini AI: Оқулықтан сабақ құру
           </button>
+          <button onclick="openHomeworkModal()" class="bg-amber-600 hover:bg-amber-700 text-white font-extrabold py-2.5 px-4 rounded-xl text-xs shadow-md transition flex items-center gap-2">
+            <i class="fa-solid fa-house-laptop"></i> Үй тапсырмасын беру
+          </button>
           <button onclick="openNewParagraphModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold py-2.5 px-4 rounded-xl text-xs shadow-md transition flex items-center gap-2">
             <i class="fa-solid fa-book-bookmark"></i> Жаңа параграф қосу
           </button>
@@ -1201,6 +1232,79 @@
           <i class="fa-solid fa-inbox text-sky-600"></i> Оқушылардың өткізген жауаптары
         </h3>
         <div id="teacherSubmissionsList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+      </div>
+    </section>
+
+    <!-- ==================== 6-ҚОЙЫНДЫ: ҮЙ ТАПСЫРМАСЫ ==================== -->
+    <section id="view-homework" class="space-y-6 hidden">
+      <!-- Жоғарғы ақпараттық блок -->
+      <div class="lab-card p-6 bg-gradient-to-br from-amber-500/10 via-sky-500/5 to-transparent border-amber-200 dark:border-amber-700/60 space-y-4">
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-amber-100 dark:border-slate-800 pb-4">
+          <div class="flex items-center gap-3">
+            <div class="w-12 h-12 rounded-2xl bg-amber-500 text-white flex items-center justify-center text-2xl font-bold shadow-md flex-shrink-0">
+              <i class="fa-solid fa-house-laptop"></i>
+            </div>
+            <div>
+              <div class="flex items-center gap-2">
+                <h3 class="text-lg font-black text-slate-900 dark:text-white">Үй тапсырмасы</h3>
+                <span id="hwViewTopicBadge" class="text-xs font-bold px-2.5 py-0.5 rounded-lg bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-200 font-mono">§9. Химиялық реакциялардың типтері</span>
+              </div>
+              <p class="text-xs text-slate-500 mt-0.5">Мұғалім бекіткен өзіндік жұмыс және үй жаттығулары</p>
+            </div>
+          </div>
+
+          <!-- Мұғалім үшін тапсырманы өзгерту батырмасы -->
+          <div id="hwTeacherActionsBlock" class="hidden">
+            <button onclick="openHomeworkModal()" class="px-3.5 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-bold transition flex items-center gap-2 shadow-sm">
+              <i class="fa-solid fa-pen-to-square"></i>
+              <span>Үй тапсырмасын өзгерту / жаңа беру</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Тапсырма мазмұны -->
+        <div class="space-y-3">
+          <div class="flex flex-wrap items-center justify-between text-xs text-slate-500 gap-2">
+            <span class="flex items-center gap-1.5"><i class="fa-solid fa-calendar-check text-amber-500"></i> <span id="hwViewAssignedDate">Берілген күні: 01.10.2026</span></span>
+            <span class="flex items-center gap-1.5"><i class="fa-solid fa-hourglass-end text-rose-500"></i> <span id="hwViewDueDate">Орындау мерзімі: 03.10.2026</span></span>
+          </div>
+
+          <div class="p-4 bg-white dark:bg-slate-900/90 rounded-2xl border border-amber-200/80 dark:border-slate-800 space-y-2 shadow-sm">
+            <label class="block text-xs font-extrabold text-amber-900 dark:text-amber-300 uppercase tracking-wide">
+              <i class="fa-solid fa-thumbtack mr-1.5 text-amber-500"></i> Мұғалімнің тапсырмасы:
+            </label>
+            <div id="hwViewDescription" class="text-xs sm:text-sm text-slate-800 dark:text-slate-100 font-medium leading-relaxed whitespace-pre-wrap">
+              Әзірге үй тапсырмасы берілмеді. Мұғалім тапсырма енгізген кезде осында көрсетіледі.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Оқушы жауабын жіберу блогы -->
+      <div id="hwStudentSubmitBlock" class="lab-card p-6 space-y-4">
+        <h4 class="font-extrabold text-sm text-slate-900 dark:text-white flex items-center gap-2">
+          <i class="fa-solid fa-pen-nib text-sky-600"></i> Үй тапсырмасының жауабын жіберу
+        </h4>
+        <p class="text-xs text-slate-500">Шешілген есептерді, реакция теңдеулерін немесе сұрақтардың жауабын осында жазып, мұғалімге жіберіңіз:</p>
+        
+        <form onsubmit="handleHomeworkStudentSubmit(event)" class="space-y-3">
+          <textarea id="hwStudentAnswerInput" required rows="4" placeholder="Мысалы:\n1) Zn + 2HCl = ZnCl₂ + H₂↑ (Орынбасу реакциясы)\n2) 2H₂ + O₂ = 2H₂O (Қосылу реакциясы)..." class="w-full bg-sky-50/50 dark:bg-slate-900 border border-sky-200 dark:border-slate-700 rounded-2xl p-4 text-xs font-mono text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-sky-500 focus:outline-none"></textarea>
+          
+          <div class="flex items-center justify-between">
+            <span id="hwSubmitStatusMsg" class="text-xs font-medium text-slate-500"></span>
+            <button type="submit" class="px-5 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold text-xs rounded-xl shadow-md transition flex items-center gap-2">
+              <i class="fa-solid fa-paper-plane"></i>
+              <span>Мұғалімге тексеруге жіберу</span>
+            </button>
+          </div>
+        </form>
+
+        <div id="hwStudentSavedFeedbackBox" class="hidden p-4 rounded-2xl border bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-700 text-xs">
+          <div class="font-bold text-emerald-800 dark:text-emerald-300 flex items-center gap-1.5 mb-1">
+            <i class="fa-solid fa-circle-check"></i> Үй тапсырмасының жауабы жіберілді!
+          </div>
+          <div id="hwStudentSavedAnswerText" class="font-mono text-slate-700 dark:text-slate-300 whitespace-pre-wrap"></div>
+        </div>
       </div>
     </section>
 
@@ -1565,21 +1669,41 @@
         <!-- PANE 4: АЛМАСУ ЖӘНЕ ТЕҢЕСТІРУ -->
         <div id="newTopicPane-balance" class="space-y-3 hidden">
           <div class="p-3 bg-blue-50/50 dark:bg-slate-900/50 rounded-2xl border border-blue-100 dark:border-slate-800 space-y-3">
-            <h5 class="text-xs font-extrabold text-blue-900 dark:text-blue-300 flex items-center gap-1.5">
-              <i class="fa-solid fa-arrows-rotate text-blue-600"></i> «Алмасу» және «Теңестіру» тапсырмалары:
-            </h5>
-            <div>
-              <label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-0.5">Теңестіруге берілетін теңдеу:</label>
-              <input type="text" id="newBalancingEquation" placeholder="Мысалы: Zn + 2HCl → ZnCl₂ + H₂↑" class="w-full bg-white dark:bg-slate-950 border border-blue-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-mono font-bold">
+            <div class="flex justify-between items-center">
+              <h5 class="text-xs font-extrabold text-blue-900 dark:text-blue-300 flex items-center gap-1.5">
+                <i class="fa-solid fa-arrows-rotate text-blue-600"></i> «Алмасу» және «Теңестіру» тапсырмалары:
+              </h5>
+              <span class="text-[10px] text-slate-500 font-mono">Бірнеше теңдеу қосуға болады</span>
             </div>
-            <div>
-              <label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-0.5">Реакцияның негізгі типі:</label>
-              <select id="newBalancingType" class="w-full bg-white dark:bg-slate-950 border border-blue-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-bold">
-                <option value="replacement">Орынбасу реакциясы</option>
-                <option value="exchange">Алмасу реакциясы</option>
-                <option value="combination">Қосылу реакциясы</option>
-                <option value="decomposition">Айырылу реакциясы</option>
-              </select>
+
+            <!-- Динамикалық теңдеулер тізімі -->
+            <div id="newBalancingEquationsContainer" class="space-y-3">
+              <div class="balance-eq-row p-3 bg-white dark:bg-slate-950 rounded-xl border border-blue-200 dark:border-slate-700 space-y-2 relative">
+                <div class="flex justify-between items-center">
+                  <span class="text-[11px] font-bold text-blue-700 dark:text-blue-300">1-реакция теңдеуі:</span>
+                </div>
+                <div>
+                  <label class="block text-[10px] font-bold text-slate-500 mb-0.5">Теңестіруге берілетін теңдеу:</label>
+                  <input type="text" class="new-bal-eq-input w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs font-mono font-bold" placeholder="Мысалы: Zn + 2HCl → ZnCl₂ + H₂↑">
+                </div>
+                <div>
+                  <label class="block text-[10px] font-bold text-slate-500 mb-0.5">Реакцияның негізгі типі:</label>
+                  <select class="new-bal-type-select w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs font-bold">
+                    <option value="replacement">Орынбасу реакциясы</option>
+                    <option value="exchange">Алмасу реакциясы</option>
+                    <option value="combination">Қосылу реакциясы</option>
+                    <option value="decomposition">Айырылу реакциясы</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <!-- Төменгі плюсик батырмасы (Жаңа реакция теңдеуін қосу) -->
+            <div class="pt-1">
+              <button type="button" onclick="addNewBalancingEquationRow()" class="w-full py-2.5 border-2 border-dashed border-blue-300 hover:border-blue-500 dark:border-blue-700 dark:hover:border-blue-500 rounded-xl bg-blue-50/50 hover:bg-blue-100/70 dark:bg-slate-900/60 dark:hover:bg-slate-800 text-blue-700 dark:text-blue-300 font-bold text-xs transition flex items-center justify-center gap-2 shadow-sm">
+                <i class="fa-solid fa-circle-plus text-base text-blue-600"></i>
+                <span>+ Тағы бір реакция теңдеуін қосу</span>
+              </button>
             </div>
           </div>
         </div>
@@ -1732,6 +1856,55 @@
         </button>
       </div>
 
+    </div>
+  </div>
+
+  <!-- 7. Мұғалім үшін Үй тапсырмасын беру модальді терезесі -->
+  <div id="homeworkModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="lab-card max-w-lg w-full p-6 shadow-2xl space-y-4 max-h-[92vh] overflow-y-auto">
+      <div class="flex justify-between items-center border-b border-sky-100 dark:border-slate-700 pb-3">
+        <div>
+          <h4 class="text-base font-black text-slate-900 dark:text-white flex items-center gap-2">
+            <i class="fa-solid fa-house-laptop text-amber-500"></i> Үй тапсырмасын беру
+          </h4>
+          <p class="text-xs text-slate-500">Оқушыларға параграф бойынша үй жұмысын бекіту</p>
+        </div>
+        <button onclick="closeHomeworkModal()" class="text-slate-400 hover:text-slate-600 text-lg">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <form id="homeworkForm" onsubmit="handleSaveHomework(event)" class="space-y-3.5">
+        <div>
+          <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Параграфты таңдаңыз:</label>
+          <select id="modalHwTopicSelect" class="w-full bg-sky-50/50 dark:bg-slate-900 border border-sky-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-sky-500 cursor-pointer">
+            <!-- JS арқылы динамикалық толтырылады -->
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Үй тапсырмасының шарттары мен жаттығулары:</label>
+          <textarea id="modalHwDescriptionInput" required rows="4" placeholder="Мысалы: Оқулықтың 48-бетіндегі №3 және №5 есептерді орындап, реакция теңдеулерін дәптерге жазып, коэффициенттерін қойып келу..." class="w-full bg-sky-50/50 dark:bg-slate-900 border border-sky-200 dark:border-slate-700 rounded-xl p-3 text-xs text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-sky-500 font-mono"></textarea>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Тапсыру мерзімі (Дедлайн):</label>
+            <input type="date" id="modalHwDueDateInput" class="w-full bg-sky-50/50 dark:bg-slate-900 border border-sky-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-mono text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-sky-500">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Дайын үлгілер:</label>
+            <div class="flex gap-1.5 pt-1">
+              <button type="button" onclick="setHwTemplate('equations')" class="px-2 py-1 bg-amber-50 dark:bg-slate-800 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-slate-700 rounded-lg text-[10px] font-bold hover:bg-amber-100">Теңдеулер</button>
+              <button type="button" onclick="setHwTemplate('exercises')" class="px-2 py-1 bg-amber-50 dark:bg-slate-800 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-slate-700 rounded-lg text-[10px] font-bold hover:bg-amber-100">Жаттығулар</button>
+            </div>
+          </div>
+        </div>
+
+        <button type="submit" class="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-black py-3 rounded-xl text-xs sm:text-sm shadow-md transition flex items-center justify-center gap-2">
+          <i class="fa-solid fa-cloud-arrow-up"></i> Үй тапсырмасын сақтау және оқушыларға жариялау
+        </button>
+      </form>
     </div>
   </div>
 

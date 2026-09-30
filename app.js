@@ -17,21 +17,21 @@ const DEFAULT_TASKS = [
   {
     id: 1,
     title: '1-тапсырма. Реакция теңдеулерін аяқтау және типтерін анықтау',
-    category: 'Реакция типтері',
+    category: '§9. Химиялық реакциялардың типтері',
     formula_hint: 'Al₂S₃ + HCl → ? | NH₃ → ? | CuCO₃ → ? | N₂ + O₂ → ? | P + Cl₂ → ?',
     description: 'Мына реакция теңдеулерін аяқтап, олардың типтерін анықтаңдар:\n\n1) Al₂S₃ + HCl → ? + ?\n2) NH₃ → ? + ?\n3) CuCO₃ → ? + ?\n4) N₂ + O₂ → ?\n5) P + Cl₂ → ?\n\nТапсырма шарты: Әрбір реакция теңдеуіндегі сұрақ белгілерінің орнына түзілген зат формулаларын жазып, коэффициенттерді қойыңыз және реакция типін (қосылу, айырылу, орынбасу немесе алмасу) көрсетіңіз.'
   },
   {
     id: 2,
     title: '2-тапсырма. Реакция теңдеулерін толықтырып, теңестіру',
-    category: 'Теңдеулерді теңестіру',
+    category: '§9. Химиялық реакциялардың типтері',
     formula_hint: 'AgNO₃ + Zn → ? | K₂S + CuCl₂ → ? | Fe + ? → FeCl₃ | Na₂O + H₃PO₄ → ? | FeCl₂ + ? → FeCl₃ | FeS + HCl → ?',
     description: 'Мына реакция теңдеулерін толықтырып, теңестіріңдер:\n\n1) AgNO₃ + Zn → Zn(NO₃)₂ + ?\n2) K₂S + CuCl₂ → KCl + ?\n3) Fe + ? → FeCl₃\n4) Na₂O + H₃PO₄ → Na₃PO₄ + ?\n5) FeCl₂ + ? → FeCl₃\n6) FeS + HCl → ? + ?\n\nТапсырма шарты: Сұрақ белгілерінің орнына жетіспейтін реагенттер мен өнімдерді тауып жазыңыз және зат массасының сақталу заңына сәйкес коэффициенттерін қойып теңестіріңіз.'
   },
   {
     id: 3,
     title: '3-тапсырма. Зат формулаларын жазып, коэффициент қою және типтерін анықтау',
-    category: 'Кешенді тапсырма',
+    category: '§9. Химиялық реакциялардың типтері',
     formula_hint: '? + ? → NaCl + H₂ | ? + ? → CO₂ | ? + ? → HgO | ? + ? → CuCl₂ + H₂O | ? → CaO + CO₂',
     description: 'Сұрақ белгілерінің орнына зат формулаларын жазып, коэффициенттерін қойып, реакция типтерін анықтаңдар:\n\n1) ? + ? → NaCl + H₂\n2) ? + ? → CO₂\n3) ? + ? → HgO\n4) ? + ? → CuCl₂ + H₂O\n5) ? → CaO + CO₂\n\nТапсырма шарты: Берілген өнімдер мен бастапқы заттар сұлбасын негізге ала отырып, сұрақ белгілеріне сәйкес формулаларды анықтаңыз, коэффициенттер қойыңыз және реакция типін (қосылу, айырылу, орынбасу, алмасу) жазыңыз.'
   }
@@ -379,19 +379,38 @@ function applyUserSession() {
 
   updateBannerClassAndTopic();
 
-  // Оқушының қорытынды бағасы мен пікірі (мұғалім қойған)
+  // Оқушының қорытынды бағасы мен пікірі (10 баллдық жүйе)
   const evalCard = document.getElementById('studentOverallEvaluationCard');
   const evalGradeBadge = document.getElementById('evalStudentGradeBadge');
   const evalFeedbackText = document.getElementById('evalStudentFeedbackText');
   if (evalCard) {
-    if (user.role === 'student' && (meta.overall_grade || meta.overall_feedback)) {
+    const hasGrade = meta.overall_grade !== '' && meta.overall_grade !== null && meta.overall_grade !== undefined;
+    if (user.role === 'student' && (hasGrade || meta.overall_feedback)) {
       evalCard.classList.remove('hidden');
-      if (evalGradeBadge) evalGradeBadge.textContent = meta.overall_grade || 'Тексерілді';
+      if (evalGradeBadge) {
+        if (hasGrade) {
+          const numGrade = parseInt(meta.overall_grade, 10);
+          evalGradeBadge.textContent = `${meta.overall_grade} / 10 балл`;
+          if (!isNaN(numGrade)) {
+            if (numGrade >= 8) {
+              evalGradeBadge.className = 'text-xs font-black px-2.5 py-0.5 rounded-lg bg-emerald-500 text-white shadow-sm font-mono';
+            } else if (numGrade >= 4) {
+              evalGradeBadge.className = 'text-xs font-black px-2.5 py-0.5 rounded-lg bg-amber-500 text-white shadow-sm font-mono';
+            } else {
+              evalGradeBadge.className = 'text-xs font-black px-2.5 py-0.5 rounded-lg bg-rose-500 text-white shadow-sm font-mono';
+            }
+          }
+        } else {
+          evalGradeBadge.textContent = 'Тексерілді';
+        }
+      }
       if (evalFeedbackText) evalFeedbackText.textContent = meta.overall_feedback ? `«${meta.overall_feedback}»` : 'Мұғалім жұмысыңызды бағалады.';
     } else {
       evalCard.classList.add('hidden');
     }
   }
+
+  updateHomeworkDisplay();
 
   if (user.role === 'teacher') {
     switchTab('teacher');
@@ -447,7 +466,7 @@ async function handleTeacherModalAuth(e) {
 // ======================== ҚОЙЫНДЫЛАРДЫ АУЫСТЫРУ ========================
 
 function switchTab(tabId) {
-  ['tasks', 'calc', 'lab', 'sorting', 'balance', 'teacher'].forEach(t => {
+  ['tasks', 'calc', 'lab', 'sorting', 'balance', 'homework', 'teacher'].forEach(t => {
     const view = document.getElementById(`view-${t}`);
     const tabBtn = document.getElementById(`tab-${t}`);
     const mobBtn = document.getElementById(`mob-tab-${t}`);
@@ -468,6 +487,7 @@ function switchTab(tabId) {
   if (tabId === 'calc') initSim();
   if (tabId === 'lab') initVLab();
   if (tabId === 'sorting') renderSortingPool();
+  if (tabId === 'homework') renderHomeworkView();
   if (tabId === 'teacher') renderTeacherDashboard();
 }
 
@@ -534,6 +554,14 @@ function initSupabaseRealtime() {
 
 // ======================== ОҚУШЫ ТАПСЫРМАЛАРЫ ЖӘНЕ АРХИВ ========================
 
+function getTaskTopicTitle(task) {
+  const cat = (task?.category || '').trim();
+  if (cat === 'Реакция типтері' || cat === 'Теңдеулерді теңестіру' || cat === 'Кешенді тапсырма' || cat.includes('§9') || cat.includes('Химиялық реакциялардың типтері')) {
+    return '§9. Химиялық реакциялардың типтері';
+  }
+  return cat || 'Тапсырмалар';
+}
+
 function getCategorizedTasks() {
   const activeTitle = (state.activeTopicTitle || '§9. Химиялық реакциялардың типтері').trim();
   const isDefault9 = activeTitle.includes('§9');
@@ -542,10 +570,15 @@ function getCategorizedTasks() {
   const archivedTasks = [];
 
   state.tasks.forEach(t => {
-    const cat = (t.category || '').trim();
-    if (cat === activeTitle) {
-      activeTasks.push(t);
-    } else if (isDefault9 && (cat === 'Реакция типтері' || cat === 'Теңдеулерді теңестіру' || cat === 'Кешенді тапсырма' || !cat)) {
+    // Үй тапсырмасын сабақтық жаттығулардан бөлек қарастырамыз
+    if (t.formula_hint === 'ҮЙ_ТАПСЫРМАСЫ' || (t.title && t.title.startsWith('Үй тапсырмасы'))) {
+      return;
+    }
+
+    const taskTopic = getTaskTopicTitle(t);
+    t.category = taskTopic; // Тақырыпты нақты бірдей атауға біріктіру (§9-дың барлық тапсырмасы бірігеді)
+
+    if (taskTopic === activeTitle || (isDefault9 && taskTopic.includes('§9'))) {
       activeTasks.push(t);
     } else {
       archivedTasks.push(t);
@@ -554,7 +587,8 @@ function getCategorizedTasks() {
 
   // Егер жаңа тақырыпқа әлі тапсырма қосылмаған болса және жалпы тапсырмалар болса:
   if (activeTasks.length === 0 && state.tasks.length > 0) {
-    return { displayTasks: state.tasks, archivedTasks: [] };
+    const nonHw = state.tasks.filter(t => t.formula_hint !== 'ҮЙ_ТАПСЫРМАСЫ' && !t.title?.startsWith('Үй тапсырмасы'));
+    return { displayTasks: nonHw, archivedTasks: [] };
   }
 
   return { displayTasks: activeTasks, archivedTasks };
@@ -666,7 +700,7 @@ function renderArchiveTasksList() {
 
   const groups = {};
   archivedTasks.forEach(t => {
-    const cat = t.category || 'Бұрынғы тапсырмалар';
+    const cat = getTaskTopicTitle(t);
     if (!groups[cat]) groups[cat] = [];
     groups[cat].push(t);
   });
@@ -1700,8 +1734,8 @@ function renderTeacherMatrix(students, tasks) {
   });
 
   const thGrade = document.createElement('th');
-  thGrade.className = 'py-3 px-3 text-center min-w-[120px] text-sky-700 dark:text-sky-300';
-  thGrade.innerHTML = '<i class="fa-solid fa-star text-amber-400 mr-1"></i> Қорытынды баға';
+  thGrade.className = 'py-3 px-3 text-center min-w-[140px] text-sky-700 dark:text-sky-300';
+  thGrade.innerHTML = '<i class="fa-solid fa-star text-amber-400 mr-1"></i> Қорытынды баға (0-10)';
   header.appendChild(thGrade);
 
   const thFeedback = document.createElement('th');
@@ -1781,16 +1815,32 @@ function renderTeacherMatrix(students, tasks) {
       tr.appendChild(td);
     });
 
-    // Қорытынды баға
+    // Қорытынды баға (10 баллдық шкала: 0 - 10)
     const tdGrade = document.createElement('td');
     tdGrade.className = 'py-3 px-2 text-center';
+
+    let optionsHtml = '<option value="">—</option>';
+    const gradeLabels = {
+      10: '10 (Өте жақсы)',
+      9: '9 (Өте жақсы)',
+      8: '8 (Жақсы)',
+      7: '7 (Жақсы)',
+      6: '6 (Қанағат)',
+      5: '5 (Қанағат)',
+      4: '4 (Төмен)',
+      3: '3 (Төмен)',
+      2: '2 (Нашар)',
+      1: '1 (Нашар)',
+      0: '0 (Орындалмады)'
+    };
+    for (let g = 10; g >= 0; g--) {
+      const isSel = String(meta.overall_grade) === String(g);
+      optionsHtml += `<option value="${g}" ${isSel ? 'selected' : ''}>${gradeLabels[g]}</option>`;
+    }
+
     tdGrade.innerHTML = `
       <select onchange="updateStudentGradeDirect('${st.id}', this.value)" class="bg-white dark:bg-slate-900 border border-sky-200 dark:border-slate-700 rounded-lg px-2 py-1 text-xs font-bold text-sky-800 dark:text-sky-200 focus:ring-1 focus:ring-sky-500 cursor-pointer shadow-sm">
-        <option value="" ${!meta.overall_grade ? 'selected' : ''}>—</option>
-        <option value="5" ${meta.overall_grade === '5' ? 'selected' : ''}>5 (Өте жақсы)</option>
-        <option value="4" ${meta.overall_grade === '4' ? 'selected' : ''}>4 (Жақсы)</option>
-        <option value="3" ${meta.overall_grade === '3' ? 'selected' : ''}>3 (Қанағат)</option>
-        <option value="2" ${meta.overall_grade === '2' ? 'selected' : ''}>2 (Нашар)</option>
+        ${optionsHtml}
       </select>
     `;
     tr.appendChild(tdGrade);
@@ -1836,7 +1886,7 @@ async function updateStudentGradeDirect(studentId, grade) {
     .eq('id', studentId);
 
   if (!error) {
-    showToast(`«${student.name}» қорытынды бағасы қойылды: ${grade || '—'}`, 'fa-solid fa-star text-amber-500');
+    showToast(`«${student.name}» бағасы қойылды: ${grade !== '' ? grade + '/10 балл' : 'өшірілді'}`, 'fa-solid fa-star text-amber-500');
   }
 }
 
@@ -2096,7 +2146,55 @@ function openNewParagraphModalWithTab(tabKey) {
   switchNewTopicTab(tabKey);
 }
 
+function addNewBalancingEquationRow(initialEq = '', initialType = 'replacement') {
+  const container = document.getElementById('newBalancingEquationsContainer');
+  if (!container) return;
+  const count = container.querySelectorAll('.balance-eq-row').length + 1;
+  const row = document.createElement('div');
+  row.className = "balance-eq-row p-3 bg-white dark:bg-slate-950 rounded-xl border border-blue-200 dark:border-slate-700 space-y-2 relative";
+  row.innerHTML = `
+    <div class="flex justify-between items-center">
+      <span class="text-[11px] font-bold text-blue-700 dark:text-blue-300 eq-row-num">${count}-реакция теңдеуі:</span>
+      <button type="button" onclick="removeBalancingEquationRow(this)" class="text-rose-500 hover:text-rose-700 text-xs px-2 py-0.5 rounded hover:bg-rose-50 dark:hover:bg-slate-900 transition flex items-center gap-1">
+        <i class="fa-solid fa-trash-can"></i> Өшіру
+      </button>
+    </div>
+    <div>
+      <label class="block text-[10px] font-bold text-slate-500 mb-0.5">Теңестіруге берілетін теңдеу:</label>
+      <input type="text" class="new-bal-eq-input w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs font-mono font-bold" placeholder="Мысалы: 2H₂ + O₂ → 2H₂O" value="${escapeHtml(initialEq)}">
+    </div>
+    <div>
+      <label class="block text-[10px] font-bold text-slate-500 mb-0.5">Реакцияның негізгі типі:</label>
+      <select class="new-bal-type-select w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs font-bold">
+        <option value="replacement" ${initialType === 'replacement' ? 'selected' : ''}>Орынбасу реакциясы</option>
+        <option value="exchange" ${initialType === 'exchange' ? 'selected' : ''}>Алмасу реакциясы</option>
+        <option value="combination" ${initialType === 'combination' ? 'selected' : ''}>Қосылу реакциясы</option>
+        <option value="decomposition" ${initialType === 'decomposition' ? 'selected' : ''}>Айырылу реакциясы</option>
+      </select>
+    </div>
+  `;
+  container.appendChild(row);
+}
+
+function removeBalancingEquationRow(btn) {
+  const row = btn.closest('.balance-eq-row');
+  const container = document.getElementById('newBalancingEquationsContainer');
+  if (row && container) {
+    if (container.querySelectorAll('.balance-eq-row').length <= 1) {
+      showToast('Кем дегенде 1 реакция теңдеуі қалуы керек!', 'fa-solid fa-circle-exclamation text-amber-500');
+      return;
+    }
+    row.remove();
+    container.querySelectorAll('.balance-eq-row').forEach((r, idx) => {
+      const numSpan = r.querySelector('.eq-row-num');
+      if (numSpan) numSpan.textContent = `${idx + 1}-реакция теңдеуі:`;
+    });
+  }
+}
+
 function fillParagraphTemplate(topic) {
+  const balContainer = document.getElementById('newBalancingEquationsContainer');
+
   if (topic === 'hydrogen') {
     document.getElementById('newParaTitle').value = '§10. Сутек — химиялық элемент және жай зат';
     document.getElementById('paraTask1Title').value = '1-тапсырма (А-деңгейі). Сутекті алу реакциялары';
@@ -2112,6 +2210,12 @@ function fillParagraphTemplate(topic) {
     const r2 = document.getElementById('newSimR2Name'); if (r2) r2.value = 'Тұз қышқылы (HCl)';
     const pName = document.getElementById('newSimProdName'); if (pName) pName.value = 'Мырыш хлориді және Сутек';
     const pForm = document.getElementById('newSimProdFormula'); if (pForm) pForm.value = 'ZnCl₂ + H₂↑';
+
+    if (balContainer) {
+      balContainer.innerHTML = '';
+      addNewBalancingEquationRow('Zn + 2HCl → ZnCl₂ + H₂↑', 'replacement');
+      addNewBalancingEquationRow('2H₂ + O₂ → 2H₂O', 'combination');
+    }
   } else if (topic === 'water') {
     document.getElementById('newParaTitle').value = '§11. Су — еріткіш. Ерітінділер';
     document.getElementById('paraTask1Title').value = '1-тапсырма (А-деңгейі). Судың физикалық қасиеттері';
@@ -2120,6 +2224,12 @@ function fillParagraphTemplate(topic) {
     document.getElementById('paraTask2Desc').value = 'Натрий мен судың әрекеттесу теңдеуін жазып, теңестіріңіз: Na + H₂O → NaOH + H₂↑';
     document.getElementById('paraTask3Title').value = '3-тапсырма (С-деңгейі). Ерітіндідегі еріген заттың массалық үлесі';
     document.getElementById('paraTask3Desc').value = '180 г суға 20 г ас тұзын (NaCl) еріткенде түзілген ерітіндідегі тұздың массалық үлесін (ω, %) табыңыз.';
+
+    if (balContainer) {
+      balContainer.innerHTML = '';
+      addNewBalancingEquationRow('2H₂ + O₂ → 2H₂O', 'combination');
+      addNewBalancingEquationRow('2H₂O → 2H₂↑ + O₂↑', 'decomposition');
+    }
   } else if (topic === 'oxygen') {
     document.getElementById('newParaTitle').value = '§12. Оттек және оның қасиеттері. Оксидтер';
     document.getElementById('paraTask1Title').value = '1-тапсырма (А-деңгейі). Оттекті зертханада алу';
@@ -2128,6 +2238,12 @@ function fillParagraphTemplate(topic) {
     document.getElementById('paraTask2Desc').value = 'Күкірттің оттекте жанып күкірт(IV) оксидін түзетін реакциясының теңдеуін құрыңыз: S + O₂ → SO₂.';
     document.getElementById('paraTask3Title').value = '3-тапсырма (С-деңгейі). Оттек массасын есептеу';
     document.getElementById('paraTask3Desc').value = '64 г мыс толық тотыққанда (2Cu + O₂ → 2CuO) жұмсалатын оттектің массасын (г) табыңыз.';
+
+    if (balContainer) {
+      balContainer.innerHTML = '';
+      addNewBalancingEquationRow('2KMnO₄ → K₂MnO₄ + MnO₂ + O₂↑', 'decomposition');
+      addNewBalancingEquationRow('S + O₂ → SO₂', 'combination');
+    }
   }
 }
 
@@ -2202,14 +2318,30 @@ async function handleCreateParagraph(e) {
     }));
   }
 
-  // 3. Теңестіру қойындысы
-  const balEq = document.getElementById('newBalancingEquation')?.value.trim();
-  const balType = document.getElementById('newBalancingType')?.value || 'replacement';
-  if (balEq) {
-    localStorage.setItem('chemlab_custom_balance', JSON.stringify({
-      equation: balEq,
-      type: balType
-    }));
+  // 3. Алмасу/Теңесу қойындысы (Барлық қосылған реакция теңдеулерін жинау)
+  const eqRows = document.querySelectorAll('#newBalancingEquationsContainer .balance-eq-row');
+  const customEquationsList = [];
+  eqRows.forEach((r, idx) => {
+    const eqInput = r.querySelector('.new-bal-eq-input')?.value.trim();
+    const typeSelect = r.querySelector('.new-bal-type-select')?.value || 'replacement';
+    if (eqInput) {
+      customEquationsList.push({
+        id: 'cust_eq_' + Date.now() + '_' + idx,
+        text: eqInput,
+        type: typeSelect
+      });
+    }
+  });
+
+  if (customEquationsList.length > 0) {
+    localStorage.setItem('chemlab_custom_equations', JSON.stringify(customEquationsList));
+    customEquationsList.forEach(item => {
+      if (!sortingEquations.some(e => e.text === item.text)) {
+        sortingEquations.push(item);
+      }
+    });
+    currentSortingPool = [...sortingEquations];
+    renderSortingPool();
   }
 
   // 4. Жаңа тапсырмаларды Supabase-ке жіберу
@@ -2251,6 +2383,230 @@ function escapeHtml(str) {
             .replace(/>/g, '&gt;')
             .replace(/"/g, '&quot;')
             .replace(/'/g, '&#039;');
+}
+
+// ======================== МҰҒАЛІМ: ҮЙ ТАПСЫРМАСЫ БЕРУ ========================
+
+const DEFAULT_HOMEWORK = {
+  topic: '§9. Химиялық реакциялардың типтері',
+  description: '1. Оқулықтағы §9 тақырыбын оқу, қосылу, айырылу, орынбасу және алмасу реакцияларының анықтамаларын дәптерге жазу.\n2. Келесі реакция теңдеулерін дәптерге жазып, теңестіру:\n   а) Mg + 2HCl → MgCl₂ + H₂↑\n   ә) Cu(OH)₂ → CuO + H₂O\n   б) 2Al + 3CuSO₄ → Al₂(SO₄)₃ + 3Cu\n3. Сұрақтарға жауапты платформадағы «Үй тапсырмасы» бөліміне жазып жіберу.',
+  assignedDate: '01.10.2026',
+  dueDate: '04.10.2026'
+};
+
+function getStoredHomework() {
+  try {
+    const raw = localStorage.getItem('chemlab_homework');
+    if (raw) return JSON.parse(raw);
+  } catch (e) {
+    console.error(e);
+  }
+  return DEFAULT_HOMEWORK;
+}
+
+function openHomeworkModal() {
+  const modal = document.getElementById('homeworkModal');
+  if (!modal) return;
+  populateHwParagraphSelect();
+  const currentHw = getStoredHomework();
+  const descInput = document.getElementById('modalHwDescriptionInput');
+  if (descInput) descInput.value = currentHw.description || '';
+  modal.classList.remove('hidden');
+}
+
+function closeHomeworkModal() {
+  const modal = document.getElementById('homeworkModal');
+  if (modal) modal.classList.add('hidden');
+}
+
+function populateHwParagraphSelect() {
+  const select = document.getElementById('modalHwTopicSelect');
+  if (!select) return;
+  select.innerHTML = '';
+
+  const topics = new Set();
+  topics.add('§9. Химиялық реакциялардың типтері');
+  topics.add('§ 5 Заттардың агрегаттық күйлері');
+  if (state.activeTopicTitle) {
+    topics.add(state.activeTopicTitle);
+  }
+  state.tasks.forEach(t => {
+    const topic = getTaskTopicTitle(t);
+    if (topic) topics.add(topic);
+  });
+
+  const currentHw = getStoredHomework();
+  const activeSelected = currentHw.topic || state.activeTopicTitle || '§9. Химиялық реакциялардың типтері';
+
+  topics.forEach(top => {
+    const opt = document.createElement('option');
+    opt.value = top;
+    opt.textContent = top;
+    if (top === activeSelected) opt.selected = true;
+    select.appendChild(opt);
+  });
+}
+
+function setHwTemplate(type) {
+  const desc = document.getElementById('modalHwDescriptionInput');
+  if (!desc) return;
+  if (type === 'equations') {
+    desc.value = "Келесі химиялық реакция теңдеулерін дәптерге жазып, коэффициенттерін қойып теңестіріңіз және реакция типін анықтаңыз:\n1) Al + O₂ → Al₂O₃\n2) Fe + CuSO₄ → FeSO₄ + Cu\n3) CaCO₃ → CaO + CO₂↑\n4) NaOH + HCl → NaCl + H₂O";
+  } else if (type === 'exercises') {
+    desc.value = "1. Оқулықтағы параграфты мұқият оқып, ережелер мен анықтамаларды дәптерге жазып жаттау.\n2. Тақырып соңындағы №4 және №7 есептерді шығарып, шешу барысын көрсету.\n3. Алмасу реакциясының соңына дейін жүру белгілеріне (тұнба, газ, су) мысал келтіру.";
+  }
+}
+
+async function handleSaveHomework(e) {
+  e.preventDefault();
+  const topic = document.getElementById('modalHwTopicSelect')?.value.trim() || state.activeTopicTitle || '§9. Химиялық реакциялардың типтері';
+  const description = document.getElementById('modalHwDescriptionInput')?.value.trim();
+  const dueDateRaw = document.getElementById('modalHwDueDateInput')?.value;
+
+  if (!description) {
+    showToast('Үй тапсырмасының шартын жазыңыз!', 'fa-solid fa-circle-exclamation text-amber-500');
+    return;
+  }
+
+  let formattedDueDate = 'Белгіленген мерзімде';
+  if (dueDateRaw) {
+    const [y, m, d] = dueDateRaw.split('-');
+    if (y && m && d) formattedDueDate = `${d}.${m}.${y}`;
+  }
+
+  const today = new Date();
+  const todayStr = `${String(today.getDate()).padStart(2, '0')}.${String(today.getMonth() + 1).padStart(2, '0')}.${today.getFullYear()}`;
+
+  const hwData = {
+    topic: topic,
+    description: description,
+    assignedDate: todayStr,
+    dueDate: formattedDueDate
+  };
+
+  localStorage.setItem('chemlab_homework', JSON.stringify(hwData));
+
+  try {
+    await sb.from('tasks').insert([{
+      title: `Үй тапсырмасы: ${topic}`,
+      category: topic,
+      description: description,
+      formula_hint: 'ҮЙ_ТАПСЫРМАСЫ'
+    }]);
+  } catch (err) {
+    console.warn("Supabase HW sync:", err);
+  }
+
+  closeHomeworkModal();
+  updateHomeworkDisplay();
+  showToast('Үй тапсырмасы сақталып, оқушыларға жарияланды!', 'fa-solid fa-house-laptop text-amber-500');
+}
+
+function updateHomeworkDisplay() {
+  const hw = getStoredHomework();
+
+  // 1. Жоғарғы баннер (studentHomeworkTopBanner)
+  const banner = document.getElementById('studentHomeworkTopBanner');
+  const bannerTopic = document.getElementById('bannerHwTopic');
+  const bannerDeadline = document.getElementById('bannerHwDeadline');
+  const bannerText = document.getElementById('bannerHwText');
+
+  if (banner) {
+    if (bannerTopic) bannerTopic.textContent = hw.topic || '§9. Химиялық реакциялардың типтері';
+    if (bannerDeadline) bannerDeadline.textContent = `Мерзімі: ${hw.dueDate || 'Белгіленген'}`;
+    if (bannerText) {
+      const firstLine = (hw.description || '').split('\n')[0];
+      bannerText.textContent = firstLine || 'Мұғалім берген үй тапсырмасы...';
+    }
+    banner.classList.remove('hidden');
+  }
+
+  // 2. «Үй тапсырмасы» бөлімі (#view-homework)
+  const hwViewTopic = document.getElementById('hwViewTopicBadge');
+  const hwViewAssigned = document.getElementById('hwViewAssignedDate');
+  const hwViewDue = document.getElementById('hwViewDueDate');
+  const hwViewDesc = document.getElementById('hwViewDescription');
+
+  if (hwViewTopic) hwViewTopic.textContent = hw.topic || '§9. Химиялық реакциялардың типтері';
+  if (hwViewAssigned) hwViewAssigned.textContent = `Берілген күні: ${hw.assignedDate || '01.10.2026'}`;
+  if (hwViewDue) hwViewDue.textContent = `Орындау мерзімі: ${hw.dueDate || 'Белгіленген'}`;
+  if (hwViewDesc) hwViewDesc.textContent = hw.description || 'Әзірге үй тапсырмасы берілмеді.';
+
+  const isTeacher = state.currentUser && state.currentUser.role === 'teacher';
+  const teacherActions = document.getElementById('hwTeacherActionsBlock');
+  const studentSubmitBlock = document.getElementById('hwStudentSubmitBlock');
+
+  if (teacherActions) {
+    if (isTeacher) teacherActions.classList.remove('hidden');
+    else teacherActions.classList.add('hidden');
+  }
+
+  if (studentSubmitBlock) {
+    if (isTeacher) studentSubmitBlock.classList.add('hidden');
+    else studentSubmitBlock.classList.remove('hidden');
+  }
+
+  const studentId = state.currentUser ? state.currentUser.id : 'guest';
+  const savedAns = localStorage.getItem('chemlab_hw_sub_' + studentId);
+  const feedbackBox = document.getElementById('hwStudentSavedFeedbackBox');
+  const savedAnsText = document.getElementById('hwStudentSavedAnswerText');
+  const inputEl = document.getElementById('hwStudentAnswerInput');
+
+  if (savedAns && feedbackBox && savedAnsText) {
+    feedbackBox.classList.remove('hidden');
+    savedAnsText.textContent = savedAns;
+    if (inputEl && !inputEl.value) inputEl.value = savedAns;
+  }
+}
+
+function renderHomeworkView() {
+  updateHomeworkDisplay();
+}
+
+function handleHomeworkStudentSubmit(e) {
+  e.preventDefault();
+  const inputEl = document.getElementById('hwStudentAnswerInput');
+  const text = inputEl ? inputEl.value.trim() : '';
+
+  if (!text) {
+    showToast('Жауабыңызды жазыңыз!', 'fa-solid fa-circle-exclamation text-amber-500');
+    return;
+  }
+
+  const studentId = state.currentUser ? state.currentUser.id : 'guest';
+  localStorage.setItem('chemlab_hw_sub_' + studentId, text);
+
+  const feedbackBox = document.getElementById('hwStudentSavedFeedbackBox');
+  const savedAnsText = document.getElementById('hwStudentSavedAnswerText');
+  if (feedbackBox && savedAnsText) {
+    feedbackBox.classList.remove('hidden');
+    savedAnsText.textContent = text;
+  }
+
+  const statusMsg = document.getElementById('hwSubmitStatusMsg');
+  if (statusMsg) {
+    statusMsg.innerHTML = '<span class="text-emerald-600 font-bold"><i class="fa-solid fa-check"></i> Сәтті жіберілді!</span>';
+    setTimeout(() => { if (statusMsg) statusMsg.innerHTML = ''; }, 4000);
+  }
+
+  showToast('Үй тапсырмасының жауабы мұғалімге тексеруге жіберілді!', 'fa-solid fa-circle-check text-emerald-500');
+}
+
+function loadCustomEquations() {
+  try {
+    const saved = JSON.parse(localStorage.getItem('chemlab_custom_equations') || '[]');
+    if (Array.isArray(saved) && saved.length > 0) {
+      saved.forEach(item => {
+        if (!sortingEquations.some(e => e.text === item.text)) {
+          sortingEquations.push(item);
+        }
+      });
+      currentSortingPool = [...sortingEquations];
+      renderSortingPool();
+    }
+  } catch (err) {
+    console.error(err);
+  }
 }
 
 // ======================== GEMINI AI ОҚУЛЫҚ ТАЛДАУ ========================
@@ -2494,7 +2850,9 @@ window.addEventListener('DOMContentLoaded', async () => {
   initVLab();
   setupBalancingListeners();
   calculateLiveAtoms();
+  loadCustomEquations();
   renderSortingPool();
+  updateHomeworkDisplay();
 
   const savedGeminiKey = localStorage.getItem('chemlab_gemini_api_key');
   const geminiInput = document.getElementById('geminiApiKeyInput');
